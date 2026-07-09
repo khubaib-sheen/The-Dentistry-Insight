@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Dentistry Insight — Dr. Hussain Ahmad</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Supabase (Auth + Database) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            adaNavy: '#0c2340',
+            adaBlue: '#0056b3',
+            adaSoftBlue: '#f0f7ff',
+            adaRose: '#e11d48',
+            adaGray: '#4a5568',
+            adaLightGray: '#f8fafc',
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .hero-bg-accent { background: radial-gradient(circle at 85% 50%, #f43f5e 0%, #e11d48 35%, transparent 70%); }
+    .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <!-- Toast -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Article / Details Modal -->
+  <div id="postModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[1100] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100">
+      <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <span id="modalBadge" class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Details</span>
+        <button onclick="closePostModal()" class="w-8 h-8 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-8 custom-scroll" id="modalRenderAnchor"></div>
+    </div>
+  </div>
+
+  <!-- Admin Control Gateway Modal (discreet — only reachable via the footer link) -->
+  <div id="adminLoginModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[1150] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl border border-slate-100">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-lg font-black text-slate-900">Admin Control Gateway</h3>
+          <p class="text-xs text-slate-400 mt-1">Please authenticate with secure administrative privileges.</p>
+        </div>
+        <button onclick="closeAdminLoginModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+      <form id="authForm" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Admin Email</label>
+          <input type="email" id="authEmail" placeholder="Enter Admin Email" required class="w-full px-4 py-3 border border-slate-200 rounded-lg text-xs outline-none focus:border-adaBlue transition">
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Password</label>
+          <input type="password" id="authPassword" placeholder="••••••••" required class="w-full px-4 py-3 border border-slate-200 rounded-lg text-xs outline-none focus:border-adaBlue transition">
+        </div>
+        <button type="submit" id="authSubmitBtn" class="w-full py-3 bg-adaNavy hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition tracking-wide uppercase">Authenticate Credentials</button>
+        <p id="authErrorText" class="hidden text-[11px] font-semibold text-rose-600 text-center"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="confirmModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[1150] hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h3 class="text-base font-bold text-slate-800">Confirm Delete</h3>
+      </div>
+      <p class="text-sm text-slate-600 mb-6">This entry will be permanently removed from the live site. Are you sure?</p>
+      <div class="flex justify-end gap-3">
+        <button id="confirmCancelBtn" class="px-4 py-2.5 bg-slate-100 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-200 transition">Cancel</button>
+        <button id="confirmProceedBtn" class="px-4 py-2.5 bg-rose-600 text-white text-xs font-bold rounded-lg hover:bg-rose-700 transition">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Utilities bar -->
+  <div class="bg-adaNavy text-white text-xs py-2 px-4 md:px-8 flex justify-between items-center border-b border-slate-800">
+    <div class="flex items-center gap-4">
+      <span class="opacity-80"><i class="fa-solid fa-users mr-1"></i> Hub for 5000+ Pakistani Dentists</span>
+      <span class="hidden md:inline opacity-80">|</span>
+      <span class="hidden md:inline opacity-80"><i class="fa-solid fa-circle-check mr-1"></i> Verified Career Portal</span>
+    </div>
+    <span class="text-[11px] font-semibold bg-adaRose px-2 py-0.5 rounded text-white">DR. HUSSAIN AHMAD INITIATIVE</span>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20 sm:h-24">
+        <a href="#hero-section" onclick="scrollToSection('hero-section')" class="flex items-center gap-4 group">
+          <img src="logo.png" alt="The Dentistry Insight Logo" class="h-14 sm:h-16 w-auto object-contain transition-transform group-hover:scale-105" onerror="this.style.display='none'">
+          <div class="flex flex-col border-l-2 border-slate-200 pl-4">
+            <span class="text-lg sm:text-xl font-black text-adaNavy tracking-tight leading-none">The Dentistry Insight</span>
+            <span class="text-xs font-bold text-adaBlue mt-1 tracking-wider uppercase">Dr. Hussain Ahmad</span>
+          </div>
+        </a>
+
+        <nav class="hidden lg:flex items-center gap-6">
+          <a href="#jobs-section" onclick="scrollToSection('jobs-section')" class="text-slate-700 hover:text-adaBlue font-semibold text-sm transition">Jobs</a>
+          <a href="#blogs-section" onclick="scrollToSection('blogs-section')" class="text-slate-700 hover:text-adaBlue font-semibold text-sm transition">Blogs</a>
+          <a href="#posts-section" onclick="scrollToSection('posts-section')" class="text-slate-700 hover:text-adaBlue font-semibold text-sm transition">Posts</a>
+          <a href="#market-section" onclick="scrollToSection('market-section')" class="text-slate-700 hover:text-adaBlue font-semibold text-sm transition">Market</a>
+          <a href="#exams-section" onclick="scrollToSection('exams-section')" class="text-slate-700 hover:text-adaBlue font-semibold text-sm transition">Exams</a>
+        </nav>
+
+        <button onclick="toggleMobileMenu()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100">
+          <i class="fa-solid fa-bars text-xl"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobileMenu" class="hidden lg:hidden bg-white border-t border-slate-100 px-4 py-4 space-y-3 shadow-lg">
+      <a href="#jobs-section" onclick="scrollToSection('jobs-section'); toggleMobileMenu()" class="block text-slate-700 font-semibold text-sm py-2">Jobs</a>
+      <a href="#blogs-section" onclick="scrollToSection('blogs-section'); toggleMobileMenu()" class="block text-slate-700 font-semibold text-sm py-2">Blogs</a>
+      <a href="#posts-section" onclick="scrollToSection('posts-section'); toggleMobileMenu()" class="block text-slate-700 font-semibold text-sm py-2">Posts</a>
+      <a href="#market-section" onclick="scrollToSection('market-section'); toggleMobileMenu()" class="block text-slate-700 font-semibold text-sm py-2">Market</a>
+      <a href="#exams-section" onclick="scrollToSection('exams-section'); toggleMobileMenu()" class="block text-slate-700 font-semibold text-sm py-2">Exams</a>
+    </div>
+  </header>
+
+  <main class="flex-1">
+
+    <!-- HERO -->
+    <section id="hero-section" class="relative bg-adaNavy text-white overflow-hidden py-16 lg:py-24">
+      <div class="absolute inset-0 bg-cover bg-center mix-blend-overlay opacity-10" style="background-image: url('https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=1200&q=80');"></div>
+      <div class="absolute right-0 bottom-0 top-0 w-full lg:w-1/2 opacity-30 lg:opacity-100 pointer-events-none">
+        <div class="w-full h-full rounded-l-full bg-gradient-to-tr from-adaBlue/50 to-pink-600/30 blur-3xl lg:blur-none"></div>
+      </div>
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <span class="text-xs uppercase tracking-widest font-black text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-full inline-block mb-6">Pakistani Dentists Hub</span>
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-6">
+            What is <br><span class="text-rose-400">The Dentistry Insight?</span>
+          </h1>
+          <p class="text-base sm:text-lg text-slate-300 leading-relaxed mb-8">
+            The Dentistry Insight is the largest dentist platform, especially in Pakistan, posting dental jobs, blogs, community posts, market listings, and licensing exam resources — under the direction of Dr. Hussain Ahmad.
+          </p>
+          <div class="flex flex-wrap gap-4">
+            <button onclick="scrollToSection('jobs-section')" class="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition shadow-lg shadow-rose-900/30 text-sm">
+              Explore Dental Jobs
+            </button>
+            <button onclick="scrollToSection('market-section')" class="px-6 py-3 bg-adaBlue hover:bg-blue-700 text-white font-bold rounded-lg transition text-sm shadow-md">
+              Browse Dental Market
+            </button>
+          </div>
+        </div>
+        <div class="relative flex justify-center">
+          <div class="relative w-72 h-72 sm:w-96 sm:h-96 rounded-full overflow-hidden border-8 border-white/10 shadow-2xl">
+            <img src="https://images.unsplash.com/photo-1579684389782-64d84b5e901a?auto=format&fit=crop&w=800&q=80" alt="Dentistry Insight Team" class="w-full h-full object-cover">
+          </div>
+          <div class="absolute top-8 left-4 bg-white text-slate-900 p-3 rounded-xl shadow-xl flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-lg">🇵🇰</div>
+            <div>
+              <div class="text-xs font-bold leading-none text-slate-500">MEMBER DENSITY</div>
+              <div class="text-sm font-black text-slate-800">5000+ Pakistan Doctors</div>
+            </div>
+          </div>
+          <div class="absolute bottom-8 right-4 bg-adaBlue text-white p-3 rounded-xl shadow-xl flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white"><i class="fa-solid fa-graduation-cap"></i></div>
+            <div>
+              <div class="text-[10px] font-bold opacity-80 leading-none">RESOURCES</div>
+              <div class="text-xs font-black">Licensing Prep & CPDs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOGS -->
+    <section id="blogs-section" class="py-16 bg-white border-b border-slate-100">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-10">
+          <div class="text-xs font-bold tracking-widest text-adaBlue uppercase mb-2">Insights & Education</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Blogs</h2>
+          <p class="text-sm text-slate-500 mt-2 max-w-xl">Clinical articles, career guidance, and dental knowledge from Dr. Hussain Ahmad.</p>
+        </div>
+        <div id="blogsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+    </section>
+
+    <!-- JOBS -->
+    <section id="jobs-section" class="py-16 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-10">
+          <div>
+            <div class="text-xs font-bold tracking-widest text-adaBlue uppercase mb-2">Verified Careers</div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Dentistry Jobs</h2>
+            <p class="text-sm text-slate-500 mt-2 max-w-xl">Active employment opportunities, associate vacancies, and clinical slots.</p>
+          </div>
+          <div class="mt-4 md:mt-0">
+            <div class="flex items-center gap-2 border border-slate-200 bg-white rounded-lg px-3 py-2 w-full md:w-72">
+              <i class="fa-solid fa-magnifying-glass text-slate-400 text-sm"></i>
+              <input type="text" id="jobSearch" placeholder="Filter by title, company, city..." oninput="renderJobs()" class="bg-transparent border-none outline-none text-xs text-slate-700 w-full">
+            </div>
+          </div>
+        </div>
+        <div id="jobsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+    </section>
+
+    <!-- POSTS -->
+    <section id="posts-section" class="py-16 bg-white border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-10 text-center max-w-xl mx-auto">
+          <div class="text-xs font-bold tracking-widest text-adaBlue uppercase mb-2">Community</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Posts</h2>
+          <p class="text-sm text-slate-500 mt-2">Announcements, community updates, and general notices for the platform.</p>
+        </div>
+        <div id="postsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+    </section>
+
+    <!-- MARKET -->
+    <section id="market-section" class="py-16 bg-slate-50 border-b border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-10">
+          <div class="text-xs font-bold tracking-widest text-rose-600 uppercase mb-2">Dental Equipment Exchange</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Dental Market</h2>
+          <p class="text-sm text-slate-500 mt-2 max-w-xl">Buy and sell dental equipment, materials, clinical tools, and practices within the community.</p>
+        </div>
+        <div id="marketGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+    </section>
+
+    <!-- EXAMS -->
+    <section id="exams-section" class="py-16 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="mb-10">
+          <div class="text-xs font-bold tracking-widest text-rose-600 uppercase mb-2">High-Yield Materials</div>
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Licensing Exams</h2>
+          <p class="text-sm text-slate-500 mt-2 max-w-2xl">Exam dates, registration links, and preparatory notes for licensing and board evaluations.</p>
+        </div>
+        <div id="examsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-adaNavy text-slate-300 py-10 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-start text-center md:text-left mb-8">
+        <div></div>
+        <div class="text-center">
+          <p class="text-sm font-bold text-white">The Dentistry Insight</p>
+          <p class="text-xs mt-2 opacity-70">© <span id="year"></span> Dr. Hussain Ahmad. All rights reserved.</p>
+          <p class="text-xs mt-2 opacity-70"><i class="fa-solid fa-envelope mr-1.5"></i>hussainsheen63@gmail.com</p>
+        </div>
+        <div class="text-center md:text-right">
+          <h4 class="text-xs font-black tracking-wider uppercase text-slate-300 mb-2">Administrative Zone</h4>
+          <p class="text-[11px] text-slate-400 leading-relaxed mb-3">Authorized clinical operators & team managers only.</p>
+          <div id="adminGatewayBtn"></div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+<script>
+  // ============================================================
+  // SUPABASE CONFIG — same project as admin.html
+  // The publishable ("anon") key is meant to be public; RLS policies on
+  // each table (public SELECT, authenticated-only INSERT/UPDATE/DELETE)
+  // are what actually keep writes locked down to the admin panel.
+  // ============================================================
+  const SUPABASE_URL = "https://rtzxxeeqfhmmnoubwzvq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_v8RouLqDckbyAXURXFo18w_Q0M3Qx5-";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const auth = supabaseClient.auth;
+  let currentUser = null;
+
+  const TABLE_MAP = { blogs: 'admin_blogs', jobs: 'admin_jobs', posts: 'admin_posts', market: 'admin_market', exams: 'admin_exams' };
+
+  auth.onAuthStateChange((event, session) => {
+    currentUser = session ? session.user : null;
+    syncAdminUI();
+    renderAll();
+  });
+
+  const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&w=600&q=80";
+
+  let store = { blogs: [], jobs: [], posts: [], market: [], exams: [] };
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function formatDate(d) {
+    if (!d) return '';
+    try { return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
+    catch { return d; }
+  }
+
+  async function loadTable(key, table) {
+    const { data, error } = await supabaseClient
+      .from(table)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(`Supabase read error (${table}):`, error);
+      store[key] = [];
+    } else {
+      store[key] = data || [];
+    }
+    renderAll();
+  }
+
+  function subscribeLive(key, table) {
+    supabaseClient
+      .channel(`${table}-changes`)
+      .on('postgres_changes', { event: '*', schema: 'public', table }, () => loadTable(key, table))
+      .subscribe();
+  }
+
+  function initData() {
+    const map = { blogs: 'admin_blogs', jobs: 'admin_jobs', posts: 'admin_posts', market: 'admin_market', exams: 'admin_exams' };
+    Object.entries(map).forEach(([key, table]) => {
+      loadTable(key, table);
+      subscribeLive(key, table);
+    });
+  }
+
+  function renderAll() {
+    renderBlogs();
+    renderJobs();
+    renderPosts();
+    renderMarket();
+    renderExams();
+  }
+
+  function emptyState(grid, text) {
+    grid.innerHTML = `
+      <div class="col-span-full py-12 text-center bg-slate-50 border border-slate-100 rounded-xl">
+        <span class="text-3xl text-slate-300 block mb-3"><i class="fa-solid fa-folder-open"></i></span>
+        <p class="text-xs font-semibold text-slate-500">${text}</p>
+      </div>`;
+  }
+
+  // ---------------- Blogs ----------------
+  function renderBlogs() {
+    const grid = document.getElementById('blogsGrid');
+    grid.innerHTML = '';
+    if (store.blogs.length === 0) { emptyState(grid, 'No blog posts published yet.'); return; }
+
+    store.blogs.forEach(item => {
+      const card = document.createElement('div');
+      card.className = "bg-white border border-slate-200/80 rounded-xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col";
+      card.innerHTML = `
+        <div class="h-44 bg-cover bg-center bg-slate-100" style="background-image:url('${escapeHtml(item.image_url || PLACEHOLDER_IMAGE)}')"></div>
+        <div class="p-6 flex-1 flex flex-col">
+          ${item.category ? `<span class="self-start px-2.5 py-1 bg-adaSoftBlue text-adaBlue text-[9px] font-extrabold uppercase rounded-full tracking-wider mb-3">${escapeHtml(item.category)}</span>` : ''}
+          <h3 class="text-base font-bold text-slate-900 leading-tight">${escapeHtml(item.title)}</h3>
+          <p class="text-xs text-slate-500 mt-3 line-clamp-3 leading-relaxed flex-1">${escapeHtml(item.description)}</p>
+          <button onclick='openBlogModal(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="mt-4 self-start px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition">Read More</button>
+          ${item.pdf_url ? `<a href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noopener" class="mt-2 self-start px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold transition inline-flex items-center gap-1"><i class="fa-solid fa-file-pdf"></i> View PDF</a>` : ''}
+          ${adminDeleteButton('blogs', item.id)}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function openBlogModal(item) {
+    document.getElementById('modalBadge').textContent = item.category ? `Blog · ${item.category}` : 'Blog';
+    document.getElementById('modalRenderAnchor').innerHTML = `
+      <h1 class="text-2xl sm:text-3xl font-black text-slate-900 leading-tight mb-4">${escapeHtml(item.title)}</h1>
+      <div class="w-full h-64 sm:h-80 rounded-xl overflow-hidden mb-6 bg-slate-100">
+        <img src="${escapeHtml(item.image_url || PLACEHOLDER_IMAGE)}" alt="" class="w-full h-full object-cover">
+      </div>
+      <div class="text-sm text-slate-600 leading-relaxed space-y-4">${escapeHtml(item.content || item.description).replace(/\n/g, '<br>')}</div>
+      ${item.pdf_url ? `<a href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noopener" class="mt-6 inline-block px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition"><i class="fa-solid fa-file-pdf mr-1"></i> Download PDF</a>` : ''}
+    `;
+    openPostModal();
+  }
+
+  // ---------------- Jobs ----------------
+  function renderJobs() {
+    const grid = document.getElementById('jobsGrid');
+    const q = (document.getElementById('jobSearch').value || '').toLowerCase();
+    grid.innerHTML = '';
+
+    let list = store.jobs;
+    if (q) {
+      list = list.filter(j =>
+        (j.title || '').toLowerCase().includes(q) ||
+        (j.company || '').toLowerCase().includes(q) ||
+        (j.location || '').toLowerCase().includes(q)
+      );
+    }
+
+    if (list.length === 0) { emptyState(grid, 'No matching job listings found.'); return; }
+
+    list.forEach(item => {
+      const card = document.createElement('div');
+      card.className = "bg-white border border-slate-200/80 rounded-xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col justify-between";
+      card.innerHTML = `
+        ${item.image_url ? `<div class="h-32 bg-cover bg-center bg-slate-100" style="background-image:url('${escapeHtml(item.image_url)}')"></div>` : ''}
+        <div class="p-6 flex flex-col justify-between flex-1">
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 bg-blue-50 text-adaBlue text-[9px] font-extrabold uppercase rounded-full tracking-wider">Job Opening</span>
+            ${item.salary ? `<span class="text-[11px] font-bold text-emerald-600">${escapeHtml(item.salary)}</span>` : ''}
+          </div>
+          <h3 class="text-base font-bold text-slate-900 leading-tight">${escapeHtml(item.title)}</h3>
+          <p class="text-[11px] text-slate-400 mt-1 font-semibold"><i class="fa-solid fa-building-columns mr-1"></i>${escapeHtml(item.company || '')} ${item.location ? '· ' + escapeHtml(item.location) : ''}</p>
+          <p class="text-xs text-slate-500 mt-3 line-clamp-3 leading-relaxed">${escapeHtml(item.description)}</p>
+        </div>
+        <div class="pt-4 mt-4 border-t border-slate-50 flex flex-wrap items-center gap-2">
+          ${item.apply_link
+            ? `<a href="${escapeHtml(item.apply_link)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-lg transition">Apply Now</a>`
+            : `<span class="text-[11px] text-slate-400 font-semibold">No application link provided</span>`}
+          ${item.pdf_url ? `<a href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noopener" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition inline-flex items-center gap-1"><i class="fa-solid fa-file-pdf"></i> PDF</a>` : ''}
+          ${adminDeleteButton('jobs', item.id)}
+        </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // ---------------- Posts ----------------
+  function renderPosts() {
+    const grid = document.getElementById('postsGrid');
+    grid.innerHTML = '';
+    if (store.posts.length === 0) { emptyState(grid, 'No community posts yet.'); return; }
+
+    store.posts.forEach(item => {
+      const card = document.createElement('div');
+      card.className = "bg-white border border-slate-200/80 rounded-xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col";
+      card.innerHTML = `
+        <div class="h-40 bg-cover bg-center bg-slate-100" style="background-image:url('${escapeHtml(item.image_url || PLACEHOLDER_IMAGE)}')"></div>
+        <div class="p-6 flex-1 flex flex-col">
+          <h3 class="text-base font-bold text-slate-900 leading-tight">${escapeHtml(item.title)}</h3>
+          <p class="text-xs text-slate-500 mt-3 line-clamp-3 leading-relaxed flex-1">${escapeHtml(item.description)}</p>
+          <p class="text-[10px] text-slate-400 font-semibold mt-3">${formatDate(item.created_at)}</p>
+          ${item.pdf_url ? `<a href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noopener" class="mt-2 self-start px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold transition inline-flex items-center gap-1"><i class="fa-solid fa-file-pdf"></i> View PDF</a>` : ''}
+          ${adminDeleteButton('posts', item.id)}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // ---------------- Market ----------------
+  function renderMarket() {
+    const grid = document.getElementById('marketGrid');
+    grid.innerHTML = '';
+    if (store.market.length === 0) { emptyState(grid, 'No market listings yet.'); return; }
+
+    store.market.forEach(item => {
+      const card = document.createElement('div');
+      card.className = "bg-white border border-slate-200/80 rounded-xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col";
+      card.innerHTML = `
+        <div class="h-44 bg-cover bg-center bg-slate-100" style="background-image:url('${escapeHtml(item.image_url || PLACEHOLDER_IMAGE)}')"></div>
+        <div class="p-6 flex-1 flex flex-col">
+          <div class="flex items-center justify-between mb-3">
+            <span class="px-2.5 py-1 bg-rose-50 text-rose-600 text-[9px] font-extrabold uppercase rounded-full tracking-wider">For Sale</span>
+            ${item.price ? `<span class="text-sm font-black text-slate-900">${escapeHtml(item.price)}</span>` : ''}
+          </div>
+          <h3 class="text-base font-bold text-slate-900 leading-tight">${escapeHtml(item.title)}</h3>
+          <p class="text-xs text-slate-500 mt-3 line-clamp-3 leading-relaxed flex-1">${escapeHtml(item.description)}</p>
+          ${item.contact ? `<p class="text-[11px] text-slate-500 font-semibold mt-3"><i class="fa-solid fa-phone mr-1"></i>${escapeHtml(item.contact)}</p>` : ''}
+          ${item.pdf_url ? `<a href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noopener" class="mt-2 self-start px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold transition inline-flex items-center gap-1"><i class="fa-solid fa-file-pdf"></i> View PDF</a>` : ''}
+          ${adminDeleteButton('market', item.id)}
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // ---------------- Exams ----------------
+  function renderExams() {
+    const grid = document.getElementById('examsGrid');
+    grid.innerHTML = '';
+    if (store.exams.length === 0) { emptyState(grid, 'No exam listings yet.'); return; }
+
+    store.exams.forEach(item => {
+      const card = document.createElement('div');
+      card.className = "bg-white border border-slate-200/80 rounded-xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col justify-between";
+      card.innerHTML = `
+        ${item.image_url ? `<div class="h-32 bg-cover bg-center bg-slate-100" style="background-image:url('${escapeHtml(item.image_url)}')"></div>` : ''}
+        <div class="p-6 flex flex-col justify-between flex-1">
+        <div>
+          <span class="px-2.5 py-1 bg-purple-50 text-purple-700 text-[9px] font-extrabold uppercase rounded-full tracking-wider">Licensing Exam</span>
+          <h3 class="text-base font-bold text-slate-900 leading-tight mt-3">${escapeHtml(item.title)}</h3>
+          ${item.exam_date ? `<p class="text-[11px] text-slate-400 mt-1 font-semibold"><i class="fa-solid fa-calendar-days mr-1"></i>${formatDate(item.exam_date)}</p>` : ''}
+          <p class="text-xs text-slate-500 mt-3 line-clamp-3 leading-relaxed">${escapeHtml(item.description)}</p>
+        </div>
+        <div class="pt-4 mt-4 border-t border-slate-50 flex flex-wrap items-center gap-2">
+          ${item.link
+            ? `<a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition">View Details</a>`
+            : `<span class="text-[11px] text-slate-400 font-semibold">No link provided</span>`}
+          ${item.pdf_url ? `<a href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noopener" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition inline-flex items-center gap-1"><i class="fa-solid fa-file-pdf"></i> PDF</a>` : ''}
+          ${adminDeleteButton('exams', item.id)}
+        </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  // ---------------- Modal / Nav helpers ----------------
+  function openPostModal() {
+    document.getElementById('postModal').classList.remove('hidden');
+    document.getElementById('postModal').classList.add('flex');
+  }
+  function closePostModal() {
+    document.getElementById('postModal').classList.add('hidden');
+  }
+  document.getElementById('postModal').addEventListener('click', e => {
+    if (e.target.id === 'postModal') closePostModal();
+  });
+
+  function scrollToSection(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  }
+  function toggleMobileMenu() {
+    document.getElementById('mobileMenu').classList.toggle('hidden');
+  }
+
+  // ---------------- Admin Gateway (login / logout) ----------------
+  function syncAdminUI() {
+    const btnWrap = document.getElementById('adminGatewayBtn');
+    if (currentUser) {
+      btnWrap.innerHTML = `
+        <button onclick="executeLogout()" class="text-xs font-bold text-rose-400 hover:text-rose-300 transition inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-right-from-bracket"></i> Sign Out (${escapeHtml(currentUser.email)})
+        </button>
+      `;
+    } else {
+      btnWrap.innerHTML = `
+        <button onclick="openAdminLoginModal()" class="text-xs font-bold text-slate-400 hover:text-slate-300 transition inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-lock text-[10px]"></i> Authorized Staff Portal
+        </button>
+      `;
+    }
+  }
+
+  function openAdminLoginModal() {
+    document.getElementById('authEmail').value = '';
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authErrorText').classList.add('hidden');
+    document.getElementById('adminLoginModal').classList.remove('hidden');
+    document.getElementById('adminLoginModal').classList.add('flex');
+  }
+  function closeAdminLoginModal() {
+    document.getElementById('adminLoginModal').classList.add('hidden');
+  }
+  document.getElementById('adminLoginModal').addEventListener('click', e => {
+    if (e.target.id === 'adminLoginModal') closeAdminLoginModal();
+  });
+
+  function handleAuthSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const submitBtn = document.getElementById('authSubmitBtn');
+    const errorText = document.getElementById('authErrorText');
+    errorText.classList.add('hidden');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Authenticating...';
+
+    auth.signInWithPassword({ email, password })
+      .then(({ error }) => {
+        if (error) throw error;
+        closeAdminLoginModal();
+        showToast('Admin session unlocked successfully!', 'success');
+      })
+      .catch(err => {
+        errorText.textContent = err.message;
+        errorText.classList.remove('hidden');
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Authenticate Credentials';
+      });
+  }
+
+  function executeLogout() {
+    auth.signOut().then(() => showToast('Admin session closed.', 'info'));
+  }
+
+  function showToast(message, type) {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    let icon = '<i class="fa-solid fa-circle-info text-blue-400"></i>';
+    if (type === 'success') icon = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+    if (type === 'error') icon = '<i class="fa-solid fa-triangle-exclamation text-rose-400"></i>';
+    toast.className = "flex items-center gap-3 bg-slate-900 text-white px-5 py-3.5 rounded-xl shadow-2xl border border-slate-800 text-xs font-semibold pointer-events-auto";
+    toast.innerHTML = `${icon} <span>${escapeHtml(message)}</span>`;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+      setTimeout(() => toast.remove(), 300);
+    }, 3500);
+  }
+
+  // ---------------- Admin-only delete ----------------
+  let confirmDeleteCallback = null;
+  function showConfirmModal(onYes) {
+    confirmDeleteCallback = onYes;
+    const m = document.getElementById('confirmModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+  document.getElementById('confirmCancelBtn').addEventListener('click', () => {
+    document.getElementById('confirmModal').classList.add('hidden');
+    confirmDeleteCallback = null;
+  });
+  document.getElementById('confirmProceedBtn').addEventListener('click', () => {
+    document.getElementById('confirmModal').classList.add('hidden');
+    if (confirmDeleteCallback) confirmDeleteCallback();
+    confirmDeleteCallback = null;
+  });
+
+  function handleDelete(key, id, e) {
+    if (e) e.stopPropagation();
+    if (!currentUser) return;
+    showConfirmModal(async () => {
+      try {
+        const { error } = await supabaseClient.from(TABLE_MAP[key]).delete().eq('id', id);
+        if (error) throw error;
+        showToast('Entry deleted.', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
+  function adminDeleteButton(key, id) {
+    if (!currentUser) return '';
+    return `
+      <button onclick="handleDelete('${key}', '${id}', event)" class="mt-3 self-start px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[10px] font-bold transition inline-flex items-center gap-1">
+        <i class="fa-solid fa-trash-can"></i> Delete
+      </button>
+    `;
+  }
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  initData();
+</script>
+
+</body>
+</html>
