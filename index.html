@@ -462,6 +462,23 @@
     );
   }
 
+  // Converts a pasted PDF URL into an embeddable, view-only preview URL.
+  // Google Drive share links (.../file/d/FILE_ID/view?usp=sharing) become
+  // .../file/d/FILE_ID/preview, which respects Drive's "disable download" setting.
+  // Any other URL (e.g. Supabase Storage) falls back to the Google Docs viewer.
+  function toEmbedPdfUrl(url) {
+    if (!url) return '';
+    const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+    if (driveMatch) {
+      return `https://drive.google.com/file/d/${driveMatch[1]}/preview`;
+    }
+    if (url.includes('drive.google.com') && url.includes('id=')) {
+      const idMatch = url.match(/[?&]id=([^&]+)/);
+      if (idMatch) return `https://drive.google.com/file/d/${idMatch[1]}/preview`;
+    }
+    return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+  }
+
   function formatDate(d) {
     if (!d) return '';
     try { return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); }
@@ -870,7 +887,7 @@
             ? `<a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg transition">View Details</a>`
             : (!item.links || item.links.length === 0) ? `<span class="text-[11px] text-slate-400 font-semibold">No link provided</span>` : ''}
           ${Array.isArray(item.links) ? item.links.map(l => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg transition">${escapeHtml(l.label || 'Open Link')}</a>`).join('') : ''}
-          ${item.pdf_url ? `<a href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noopener" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition inline-flex items-center gap-1"><i class="fa-solid fa-file-pdf"></i> PDF</a>` : ''}
+          ${item.pdf_url ? `<button onclick='openExamModal(${JSON.stringify(item).replace(/'/g, "&#39;")})' class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition inline-flex items-center gap-1"><i class="fa-solid fa-file-pdf"></i> View PDF</button>` : ''}
           ${adminDeleteButton('exams', item.id)}
         </div>
         </div>
@@ -890,8 +907,8 @@
       <div class="mt-6 flex flex-wrap gap-3">
         ${item.link ? `<a href="${escapeHtml(item.link)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg transition">View Details</a>` : ''}
         ${Array.isArray(item.links) ? item.links.map(l => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg transition">${escapeHtml(l.label || 'Open Link')}</a>`).join('') : ''}
-        ${item.pdf_url ? `<a href="${escapeHtml(item.pdf_url)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition"><i class="fa-solid fa-file-pdf mr-1"></i> Download PDF</a>` : ''}
       </div>
+      ${item.pdf_url ? `<div class="mt-6"><iframe src="${toEmbedPdfUrl(item.pdf_url)}" style="width:100%;height:80vh;border:0;" class="rounded-lg border border-slate-200"></iframe></div>` : ''}
     `;
     setModalShareState('exams', item.id);
     trackKeyEvent('exams', 'read_more', item.title);
