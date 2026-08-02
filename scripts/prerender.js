@@ -26,8 +26,6 @@ const path = require('path');
 const { createClient } = require('@supabase/supabase-js');
 
 // ---- Config -----------------------------------------------------------
-// Same project the site already uses (anon/publishable key — safe to keep
-// public, same as it already is inside index.html).
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rtzxxeeqfhmmnoubwzvq.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_v8RouLqDckbyAXURXFo18w_Q0M3Qx5-';
 const SITE_URL = (process.env.SITE_URL || 'https://www.thedentistryinsight.com').replace(/\/$/, '');
@@ -87,7 +85,7 @@ function formatDate(d) {
 }
 
 // ---- Page layout --------------------------------------------------------
-function layout({ title, description, image, canonical, ogType, jsonLd, bodyHtml }) {
+function layout({ title, description, image, canonical, ogType, jsonLd, body }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -124,7 +122,7 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
     <span class="opacity-80">Dr. Hussain Ahmad</span>
   </div>
   <main class="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-10">
-    ${bodyHtml}
+    ${body}
   </main>
   <footer class="bg-[#0c2340] text-slate-300 text-center py-6 text-xs mt-auto">
     © ${new Date().getFullYear()} Dr. Hussain Ahmad. All rights reserved.
