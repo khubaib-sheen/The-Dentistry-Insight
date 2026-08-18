@@ -150,23 +150,41 @@ function buildJob(item) {
   const title = `${item.title || 'Dental Job'}${item.company ? ' at ' + item.company : ''} | The Dentistry Insight`;
   const description = plainText(item.description || item.content || item.title);
   const image = item.image_url || PLACEHOLDER_IMAGE;
+  // Google for Jobs wants validThrough or it treats the posting as expired
+  // ~30 days after crawl and stops showing it. Default to 60 days out from
+  // whichever date we actually have.
+  const postedDate = item.created_at ? new Date(item.created_at) : new Date();
+  const validThrough = new Date(postedDate.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString();
+  const hasAnyApplyMethod = Boolean(item.apply_link || item.whatsapp_number || item.contact_email);
+
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'JobPosting',
     title: item.title, description: description,
     datePosted: item.created_at,
+    validThrough,
+    employmentType: item.employment_type || 'FULL_TIME',
+    directApply: hasAnyApplyMethod,
     hiringOrganization: { '@type': 'Organization', name: item.company || 'The Dentistry Insight' },
     jobLocation: item.location ? { '@type': 'Place', address: item.location } : undefined,
     baseSalary: item.salary ? { '@type': 'MonetaryAmount', currency: 'PKR', value: { '@type': 'QuantitativeValue', value: item.salary } } : undefined,
+    applicationContact: (item.apply_link || item.whatsapp_number || item.contact_email) ? {
+      '@type': 'ContactPoint',
+      url: item.apply_link || undefined,
+      email: item.contact_email || undefined,
+      telephone: item.whatsapp_number || undefined,
+    } : undefined,
   };
   const body = `
     <span class="px-2.5 py-1 bg-blue-50 text-[#0056b3] text-[9px] font-extrabold uppercase rounded-full tracking-wider">Job Opening</span>
     <h1 class="text-2xl sm:text-3xl font-black text-slate-900 leading-tight mt-3 mb-2">${escapeHtml(item.title)}</h1>
-    <p class="text-sm text-slate-500 font-semibold mb-6">${escapeHtml(item.company || '')} ${item.location ? '· ' + escapeHtml(item.location) : ''} ${item.salary ? '· ' + escapeHtml(item.salary) : ''}</p>
+    <p class="text-sm text-slate-500 font-semibold mb-1">${escapeHtml(item.company || '')} ${item.location ? '· ' + escapeHtml(item.location) : ''} ${item.salary ? '· ' + escapeHtml(item.salary) : ''}</p>
+    <p class="text-xs text-slate-400 font-semibold mb-6">${formatDate(item.created_at)}</p>
     ${item.image_url ? `<img src="${escapeHtml(item.image_url)}" alt="" class="w-full rounded-xl mb-6">` : ''}
     <div class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">${escapeHtml(item.content || item.description)}</div>
     <div class="mt-6 flex flex-wrap gap-3">
       ${item.apply_link ? `<a href="${escapeHtml(item.apply_link)}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-rose-600 text-white font-bold text-xs rounded-lg">Apply Now</a>` : ''}
       ${item.whatsapp_number ? `<a href="https://wa.me/${escapeHtml(item.whatsapp_number).replace(/[^0-9]/g, '')}" target="_blank" rel="noopener" class="inline-block px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-lg">WhatsApp</a>` : ''}
+      ${item.contact_email ? `<a href="mailto:${escapeHtml(item.contact_email)}" class="inline-block px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-lg">Email to Apply</a>` : ''}
     </div>
     ${backLink('jobs', item.id)}`;
   return { title, description, image, jsonLd, body, ogType: 'article' };
@@ -303,7 +321,8 @@ async function main() {
   console.log('Copying static site into /public …');
   copyRecursive(ROOT, OUT_DIR, ['public', 'scripts', 'node_modules', '.git', '.vercel']);
 
-  const sitemapUrls = [{ loc: `${SITE_URL}/`, priority: '1.0' }];
+  const buildRunDate = new Date().toISOString().slice(0, 10);
+  const sitemapUrls = [{ loc: `${SITE_URL}/`, lastmod: buildRunDate, priority: '1.0' }];
 
   for (const [typeKey, meta] of Object.entries(TYPES)) {
     console.log(`Fetching ${meta.table} …`);
@@ -318,6 +337,10 @@ async function main() {
     const folderDir = path.join(OUT_DIR, meta.folder);
     ensureDir(folderDir);
 
+    // Track the most recent item date in this section, so the hub page's
+    // lastmod reflects when the section itself was actually last updated.
+    let latestItemDate = null;
+
     for (const item of items) {
       const slug = `${slugify(item.title)}-${item.id}`;
       const canonical = `${SITE_URL}/${meta.folder}/${slug}.html`;
@@ -325,13 +348,20 @@ async function main() {
       const html = layout({ ...built, canonical });
       fs.writeFileSync(path.join(folderDir, `${slug}.html`), html);
       sitemapUrls.push({ loc: canonical, lastmod: item.created_at, priority: '0.8' });
+
+      if (item.created_at && (!latestItemDate || new Date(item.created_at) > new Date(latestItemDate))) {
+        latestItemDate = item.created_at;
+      }
     }
 
     // Hub/index page for the section, e.g. /jobs/index.html
+    // lastmod = newest item's created_at (falls back to today's build date
+    // if the section has no items yet), so this carries the same freshness
+    // signal as every individual item page instead of being left blank.
     const hubCanonical = `${SITE_URL}/${meta.folder}/`;
     const hubHtml = layout({ ...buildHub(typeKey, meta, items), canonical: hubCanonical });
     fs.writeFileSync(path.join(folderDir, 'index.html'), hubHtml);
-    sitemapUrls.push({ loc: hubCanonical, priority: '0.6' });
+    sitemapUrls.push({ loc: hubCanonical, lastmod: latestItemDate || buildRunDate, priority: '0.6' });
   }
 
   // ---- sitemap.xml ----
