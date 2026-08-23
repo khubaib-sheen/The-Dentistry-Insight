@@ -127,13 +127,14 @@ ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd)}</script
 <body class="min-h-screen flex flex-col">
   <div class="bg-[#0c2340] text-white text-xs py-2 px-4 md:px-8 flex justify-between items-center">
     <a href="/" class="font-black tracking-tight">The Dentistry Insight</a>
-    <span class="opacity-80">Dr. Hussain Ahmad</span>
+    <span class="opacity-70">Dental Careers & Resources</span>
   </div>
   <main class="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-10">
     ${body}
   </main>
   <footer class="bg-[#0c2340] text-slate-300 text-center py-6 text-xs mt-auto">
-    © ${new Date().getFullYear()} Dr. Hussain Ahmad. All rights reserved.
+    <p>© ${new Date().getFullYear()} The Dentistry Insight. All rights reserved.</p>
+    <p class="mt-2 opacity-60 max-w-md mx-auto leading-relaxed">Founded and maintained by Dr. Hussain Ahmad, a practicing dentist building a global resource for dental professionals and students.</p>
   </footer>
 </body>
 </html>`;
