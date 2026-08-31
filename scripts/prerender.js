@@ -37,13 +37,23 @@ const PLACEHOLDER_IMAGE = 'https://images.unsplash.com/photo-1629909613654-28e37
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const TYPES = {
-  jobs:   { table: 'admin_jobs',   folder: 'jobs',     label: 'Dental Jobs',     badge: 'Job Opening',     hub: 'Latest dental job openings' },
-  blogs:  { table: 'admin_blogs',  folder: 'blogs',    label: 'Dental Blogs',    badge: 'Blog',            hub: 'Latest dental blog posts' },
-  posts:  { table: 'admin_posts',  folder: 'workshop', label: 'Dental Workshop', badge: 'Workshop',        hub: 'Dental workshops & community posts' },
-  market: { table: 'admin_market', folder: 'market',   label: 'Dental Market',   badge: 'Market Listing',  hub: 'Dental equipment, clinics & market listings' },
-  exams:  { table: 'admin_exams',  folder: 'exams',    label: 'Licensing Exams', badge: 'Licensing Exam',  hub: 'Dental licensing exam resources' },
-  students: { table: 'admin_students', folder: 'students', label: 'Student Corner', badge: 'Student Resource', hub: 'Notes and resources for dental undergraduate students' },
+  jobs:   { table: 'admin_jobs',   folder: 'jobs',     label: 'Dental Jobs',     badge: 'Job Opening',     hub: 'Latest dental job openings',                minChars: 200 },
+  blogs:  { table: 'admin_blogs',  folder: 'blogs',    label: 'Dental Blogs',    badge: 'Blog',            hub: 'Latest dental blog posts',                  minChars: 400 },
+  posts:  { table: 'admin_posts',  folder: 'workshop', label: 'Dental Workshop', badge: 'Workshop',        hub: 'Dental workshops & community posts',        minChars: 200 },
+  market: { table: 'admin_market', folder: 'market',   label: 'Dental Market',   badge: 'Market Listing',  hub: 'Dental equipment, clinics & market listings', minChars: 150 },
+  exams:  { table: 'admin_exams',  folder: 'exams',    label: 'Licensing Exams', badge: 'Licensing Exam',  hub: 'Dental licensing exam resources',            minChars: 400 },
+  students: { table: 'admin_students', folder: 'students', label: 'Student Corner', badge: 'Student Resource', hub: 'Notes and resources for dental undergraduate students', minChars: 150 },
 };
+
+// A page only earns a spot in the sitemap + gets indexed if it clears this
+// bar. Below it, the page still exists and works (users can still open it,
+// apply via WhatsApp/email, etc.) — it just carries <meta name="robots"
+// content="noindex,follow"> and is left out of sitemap.xml, so it stops
+// diluting the site's overall quality signal in Google's eyes.
+function contentLength(item) {
+  const raw = `${item.title || ''} ${item.description || ''} ${item.content || ''}`;
+  return raw.replace(/\s+/g, ' ').trim().length;
+}
 
 // ---- Helpers ------------------------------------------------------------
 function escapeHtml(str) {
@@ -93,7 +103,7 @@ function formatDate(d) {
 }
 
 // ---- Page layout --------------------------------------------------------
-function layout({ title, description, image, canonical, ogType, jsonLd, body }) {
+function layout({ title, description, image, canonical, ogType, jsonLd, body, noindex }) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -102,7 +112,7 @@ function layout({ title, description, image, canonical, ogType, jsonLd, body }) 
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
-
+${noindex ? '<meta name="robots" content="noindex,follow">' : ''}
 <meta property="og:type" content="${ogType}">
 <meta property="og:site_name" content="The Dentistry Insight">
 <meta property="og:title" content="${escapeHtml(title)}">
@@ -341,18 +351,31 @@ async function main() {
     // Track the most recent item date in this section, so the hub page's
     // lastmod reflects when the section itself was actually last updated.
     let latestItemDate = null;
+    let thinCount = 0;
 
     for (const item of items) {
       const slug = `${slugify(item.title)}-${item.id}`;
       const canonical = `${SITE_URL}/${meta.folder}/${slug}.html`;
+      const thin = contentLength(item) < meta.minChars;
+      if (thin) thinCount++;
       const built = BUILDERS[typeKey](item);
-      const html = layout({ ...built, canonical });
+      const html = layout({ ...built, canonical, noindex: thin });
       fs.writeFileSync(path.join(folderDir, `${slug}.html`), html);
-      sitemapUrls.push({ loc: canonical, lastmod: item.created_at, priority: '0.8' });
+      // Thin pages are still written to disk (so they open fine, still
+      // have Apply/WhatsApp/email buttons, still linked from the hub page
+      // for real visitors) — they just don't go in the sitemap, so Google
+      // doesn't spend crawl budget on them and doesn't count them against
+      // the site's overall content-quality signal.
+      if (!thin) {
+        sitemapUrls.push({ loc: canonical, lastmod: item.created_at, priority: '0.8' });
+      }
 
       if (item.created_at && (!latestItemDate || new Date(item.created_at) > new Date(latestItemDate))) {
         latestItemDate = item.created_at;
       }
+    }
+    if (thinCount) {
+      console.log(`  ${thinCount} of ${items.length} marked noindex (under ${meta.minChars} chars) and excluded from sitemap`);
     }
 
     // Hub/index page for the section, e.g. /jobs/index.html
