@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ported 1:1 from the existing site's inline <style> block (index.html) */
+body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.hero-bg-accent {
+  background: radial-gradient(circle at 85% 50%, #f43f5e 0%, #e11d48 35%, transparent 70%);
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
