@@ -19,7 +19,7 @@ body {
 }
 
 .hero-bg-accent {
-  background: radial-gradient(circle at 85% 50%, #f43f5e 0%, #e11d48 35%, transparent 70%);
+  background-image: radial-gradient(circle at 85% 50%, #f43f5e 0%, #e11d48 35%, transparent 70%);
 }
 
 .line-clamp-3 {
