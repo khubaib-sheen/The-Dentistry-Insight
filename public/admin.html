@@ -151,25 +151,11 @@
 <script>
   // ============================================================
   // SUPABASE CONFIG
-  // ------------------------------------------------------------
-  // Project URL + the publishable ("anon") key. This same key is used on
-  // both index.html and admin.html — that is how Supabase is designed to
-  // work. It is safe to expose in client-side code because access is
-  // governed entirely by your Row Level Security (RLS) policies, not by
-  // keeping this key secret:
-  //   - public SELECT policy on all 5 tables -> anyone can read (index.html)
-  //   - INSERT/UPDATE/DELETE restricted to "authenticated" -> only a user
-  //     who has logged in here via Supabase Auth (see login form) can write
-  // Never put your service_role / secret key in any HTML/JS file — that key
-  // bypasses RLS entirely and must only ever live on a private server.
   // ============================================================
   const SUPABASE_URL = "https://rtzxxeeqfhmmnoubwzvq.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_v8RouLqDckbyAXURXFo18w_Q0M3Qx5-";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // Triggers a fresh Vercel deployment (regenerates all SEO pages + sitemap) whenever
-  // content is published, edited, or deleted. Fails silently if offline/blocked —
-  // the save/delete itself already succeeded either way.
   const DEPLOY_HOOK_URL = 'https://api.vercel.com/v1/integrations/deploy/prj_xHJDKIVwF3ZHWOQhccOOtk07ztY8/3vouLza2oj';
   function triggerSiteRebuild() {
     fetch(DEPLOY_HOOK_URL, { method: 'POST' }).catch(() => {});
@@ -178,7 +164,7 @@
   let currentUser = null;
 
   // ============================================================
-  // TABLE / FORM DEFINITIONS — matches your exact schema
+  // TABLE / FORM DEFINITIONS — ALL FIELDS NOW OPTIONAL (required: false)
   // ============================================================
   const TABS = {
     jobs: {
@@ -195,7 +181,7 @@
         { key: 'contact_email', label: 'Contact Email', type: 'email', required: false },
         { key: 'image',       label: 'Cover Image',    type: 'file', accept: 'image/*',        bucket: 'images', column: 'image_url', required: false },
         { key: 'pdf',         label: 'PDF Attachment', type: 'file', accept: 'application/pdf', bucket: 'pdfs',   column: 'pdf_url',   required: false },
-        { key: 'description', label: 'Description', type: 'textarea', required: true  }
+        { key: 'description', label: 'Description', type: 'textarea', required: false  }
       ],
       listColumns: ['title', 'company', 'location', 'created_at']
     },
@@ -208,7 +194,7 @@
         { key: 'category',    label: 'Category',          type: 'text',     required: false },
         { key: 'image',       label: 'Cover Image',       type: 'file', accept: 'image/*',        bucket: 'images', column: 'image_url', required: false },
         { key: 'pdf',         label: 'PDF Attachment',    type: 'file', accept: 'application/pdf', bucket: 'pdfs',   column: 'pdf_url',   required: false },
-        { key: 'description', label: 'Short Description', type: 'textarea', required: true  },
+        { key: 'description', label: 'Short Description', type: 'textarea', required: false  },
         { key: 'content',     label: 'Full Content',      type: 'textarea', required: false }
       ],
       listColumns: ['title', 'category', 'created_at']
@@ -222,7 +208,7 @@
         { key: 'link',        label: 'Link',        type: 'url',      required: false },
         { key: 'image',       label: 'Cover Image',    type: 'file', accept: 'image/*',        bucket: 'images', column: 'image_url', required: false },
         { key: 'pdf',         label: 'PDF Attachment', type: 'file', accept: 'application/pdf', bucket: 'pdfs',   column: 'pdf_url',   required: false },
-        { key: 'description', label: 'Description', type: 'textarea', required: true  }
+        { key: 'description', label: 'Description', type: 'textarea', required: false  }
       ],
       listColumns: ['title', 'created_at']
     },
@@ -239,7 +225,7 @@
         { key: 'link',        label: 'Link (optional)', type: 'url',  required: false },
         { key: 'image',       label: 'Cover Image',    type: 'file', accept: 'image/*',        bucket: 'images', column: 'image_url', required: false },
         { key: 'pdf',         label: 'PDF Attachment', type: 'file', accept: 'application/pdf', bucket: 'pdfs',   column: 'pdf_url',   required: false },
-        { key: 'description', label: 'Description', type: 'textarea', required: true  }
+        { key: 'description', label: 'Description', type: 'textarea', required: false  }
       ],
       listColumns: ['title', 'listing_type', 'price', 'contact', 'created_at']
     },
@@ -254,7 +240,7 @@
         { key: 'links',       label: 'Additional Links', type: 'links', required: false },
         { key: 'image',       label: 'Cover Image',    type: 'file', accept: 'image/*',        bucket: 'images', column: 'image_url', required: false },
         { key: 'pdf',         label: 'PDF Attachment', type: 'file', accept: 'application/pdf', bucket: 'pdfs',   column: 'pdf_url',   required: false },
-        { key: 'description', label: 'Description', type: 'textarea', required: true  }
+        { key: 'description', label: 'Description', type: 'textarea', required: false  }
       ],
       listColumns: ['title', 'exam_date', 'created_at']
     },
@@ -263,9 +249,9 @@
       label: 'Student Corner',
       icon: 'fa-user-graduate',
       fields: [
-        { key: 'subject',     label: 'Subject',      type: 'text',     required: true  },
-        { key: 'title',       label: 'Title',        type: 'text',     required: true  },
-        { key: 'description', label: 'Description (paste Google Drive or any link here)', type: 'textarea', required: true  }
+        { key: 'subject',     label: 'Subject',      type: 'text',     required: false  },
+        { key: 'title',       label: 'Title',        type: 'text',     required: false  },
+        { key: 'description', label: 'Description (paste Google Drive or any link here)', type: 'textarea', required: false  }
       ],
       listColumns: ['subject', 'title', 'created_at']
     }
@@ -276,11 +262,9 @@
   let editingRow = null;
   let confirmCallback = null;
 
-  // ---------------- Utilities ----------------
-  // The live site (Next.js) only shows rows where status = 'published'
-  // and requires a unique slug for each row's URL. The original version
-  // of this panel never set either, so posts saved here never appeared
-  // on the site — this restores that compatibility.
+  // ============================================================
+  // UTILITIES
+  // ============================================================
   function slugify(str) {
     return (str || '')
       .toLowerCase()
@@ -321,7 +305,9 @@
     confirmCallback = null;
   });
 
-  // ---------------- Auth ----------------
+  // ============================================================
+  // AUTH
+  // ============================================================
   function showLogin() {
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('dashboardScreen').classList.add('hidden');
@@ -333,10 +319,6 @@
     setActiveTab(activeTab);
   }
 
-  // Converts a PDF URL into an embeddable, view-only preview URL.
-  // Google Drive share links become the Drive /preview embed (respects
-  // Drive's "disable download" setting). Anything else falls back to
-  // the Google Docs viewer, which has no download button of its own.
   function toEmbedPdfUrl(url) {
     if (!url) return '';
     const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
@@ -360,7 +342,6 @@
     document.getElementById('pdfPreviewFrame').src = '';
   }
   document.getElementById('pdfPreviewCloseBtn').addEventListener('click', closePdfPreview);
-
 
   auth.onAuthStateChange((event, session) => {
     currentUser = session ? session.user : null;
@@ -393,7 +374,9 @@
     auth.signOut().then(() => showToast('Logged out.', 'info'));
   }
 
-  // ---------------- Tabs ----------------
+  // ============================================================
+  // TABS
+  // ============================================================
   function renderTabs() {
     const bar = document.getElementById('tabBar');
     bar.innerHTML = Object.keys(TABS).map(key => `
@@ -415,7 +398,9 @@
     loadList();
   }
 
-  // ---------------- Form ----------------
+  // ============================================================
+  // FORM
+  // ============================================================
   function renderForm() {
     const cfg = TABS[activeTab];
     document.getElementById('formTitle').textContent = (editingId ? 'Edit ' : 'Add New ') + cfg.label;
@@ -425,13 +410,12 @@
     const wrap = document.getElementById('formFields');
     wrap.innerHTML = cfg.fields.map(f => {
       const full = (f.type === 'textarea') ? 'sm:col-span-2' : '';
-      const req = f.required ? 'required' : '';
       let control;
       if (f.type === 'textarea') {
         const insertLinkBtn = (activeTab === 'posts' && f.key === 'description')
           ? `<button type="button" onclick="insertLinkIntoField('${f.key}')" class="text-[10px] font-bold text-[#0056b3] hover:underline mb-1"><i class="fa-solid fa-link mr-1"></i>Insert Link</button>`
           : '';
-        control = `${insertLinkBtn}<textarea id="field-${f.key}" rows="${f.key === 'content' ? 6 : 3}" ${req} class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#0056b3] resize-none"></textarea>`;
+        control = `${insertLinkBtn}<textarea id="field-${f.key}" rows="${f.key === 'content' ? 6 : 3}" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#0056b3]"></textarea>`;
       } else if (f.type === 'file') {
         control = `
           <input type="file" id="field-${f.key}" accept="${f.accept || ''}" class="w-full text-xs px-3 py-2.5 border border-slate-200 rounded-lg outline-none focus:border-[#0056b3] bg-white">
@@ -446,19 +430,18 @@
         `;
       } else if (f.type === 'select') {
         const opts = f.options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join('');
-        control = `<select id="field-${f.key}" ${req} class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#0056b3] bg-white">${opts}</select>`;
+        control = `<select id="field-${f.key}" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#0056b3] bg-white">${opts}</select>`;
       } else {
-        control = `<input type="${f.type}" id="field-${f.key}" ${req} class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#0056b3]">`;
+        control = `<input type="${f.type}" id="field-${f.key}" class="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#0056b3]">`;
       }
       return `
         <div class="${full}">
-          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">${f.label}${f.required ? ' *' : ''}</label>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">${f.label}</label>
           ${control}
         </div>
       `;
     }).join('');
 
-    // Show existing file links when editing
     if (editingId && editingRow) {
       cfg.fields.filter(f => f.type === 'file').forEach(f => {
         const url = editingRow[f.column];
@@ -471,13 +454,12 @@
       });
     }
 
-    // Populate (or seed) repeatable link rows
     cfg.fields.filter(f => f.type === 'links').forEach(f => {
       const existing = (editingId && editingRow && Array.isArray(editingRow[f.key])) ? editingRow[f.key] : [];
       if (existing.length > 0) {
         existing.forEach(item => addLinkRow(f.key, item.label || '', item.url || ''));
       } else {
-        addLinkRow(f.key); // start with one empty row so the form isn't blank
+        addLinkRow(f.key);
       }
     });
   }
@@ -519,10 +501,6 @@
     document.getElementById('itemForm').reset();
   }
 
-  // Compress/resize an image file in the browser before uploading, so it
-  // takes up far less space in Supabase Storage. Shrinks to a max width/
-  // height and re-encodes as JPEG, stepping the quality down until the
-  // result is under maxKB (or quality bottoms out).
   function compressImage(file, { maxDimension = 1600, maxKB = 100, startQuality = 0.8 } = {}) {
     return new Promise((resolve, reject) => {
       const img = new Image();
@@ -559,12 +537,9 @@
             } else if (quality > 0.3) {
               tryQuality(canvas, dimension, quality - 0.1);
             } else if (dimension > 400) {
-              // Quality alone isn't getting us there — shrink further and
-              // start again at the starting quality.
               const smaller = dimension - 300;
               tryQuality(renderAt(smaller), smaller, startQuality);
             } else {
-              // Reached the smallest reasonable size; use whatever we've got.
               const newName = file.name.replace(/\.[^.]+$/, '') + '.jpg';
               resolve(new File([blob], newName, { type: 'image/jpeg' }));
             }
@@ -578,7 +553,6 @@
     });
   }
 
-  // ---------------- Bulk re-compress existing bucket images ----------------
   function recompressLog(msg) {
     const box = document.getElementById('recompressLog');
     box.classList.remove('hidden');
@@ -611,7 +585,7 @@
         if (!files || files.length === 0) break;
 
         for (const f of files) {
-          if (!f.name || f.id === null) continue; // skip folders/placeholders
+          if (!f.name || f.id === null) continue;
           const sizeKB = (f.metadata && f.metadata.size ? f.metadata.size : 0) / 1024;
           if (sizeKB > 0 && sizeKB <= 100) {
             skipped++;
@@ -660,7 +634,6 @@
     const cfg = TABS[activeTab];
     const payload = {};
 
-    // Text / textarea / url / date fields
     for (const f of cfg.fields) {
       if (f.type === 'file') continue;
       if (f.type === 'links') {
@@ -688,9 +661,6 @@
       payload[f.key] = val === '' ? null : val;
     }
 
-    // Always publish immediately (this panel has no draft concept), and
-    // make sure every row has a slug — both are required by the live
-    // Next.js site's queries.
     payload.status = 'published';
     if (editingId && editingRow && editingRow.slug) {
       payload.slug = editingRow.slug;
@@ -704,14 +674,10 @@
     document.getElementById('submitBtnText').innerHTML = '<span class="spinner inline-block align-middle"></span>';
 
     try {
-      // File fields — upload to Storage if a new file was chosen, otherwise
-      // keep whatever was already saved (when editing) or leave empty.
       for (const f of cfg.fields.filter(x => x.type === 'file')) {
         const fileInput = document.getElementById(`field-${f.key}`);
         let file = fileInput.files[0];
         if (file) {
-          // Shrink images before upload so they take up far less space in
-          // Supabase Storage. PDFs (or any non-image file) are left as-is.
           if (f.accept && f.accept.startsWith('image/') && file.type.startsWith('image/')) {
             try {
               file = await compressImage(file);
@@ -754,7 +720,6 @@
     }
   });
 
-  // ---------------- List / Edit / Delete ----------------
   async function loadList() {
     const cfg = TABS[activeTab];
     document.getElementById('listTitle').textContent = 'Existing ' + cfg.label;
@@ -796,7 +761,7 @@
         <tr class="border-b border-slate-50">
           ${cells}
           <td class="text-right whitespace-nowrap">
-            <button onclick='startEdit(${JSON.stringify(row).replace(/'/g, "&#39;")})' class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition mr-2">
+            <button onclick='startEdit(${JSON.stringify(row).replace(/'/g, "&#39;")})' class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition">
               <i class="fa-solid fa-pen"></i> Edit
             </button>
             <button onclick="confirmDelete('${row.id}')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-[10px] font-bold transition">
@@ -814,7 +779,7 @@
     renderForm();
     const cfg = TABS[activeTab];
     cfg.fields.forEach(f => {
-      if (f.type === 'file' || f.type === 'links') return; // handled separately in renderForm
+      if (f.type === 'file' || f.type === 'links') return;
       const el = document.getElementById(`field-${f.key}`);
       if (el) el.value = row[f.key] || f.default || '';
     });
