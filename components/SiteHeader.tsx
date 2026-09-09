@@ -14,6 +14,8 @@ const NAV_LINKS = [
   { href: "/contact/", label: "Contact Us" },
 ];
 
+const LOGIN_LINK = { href: "/login.html", label: "Login" };
+
 export default function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -67,6 +69,13 @@ export default function SiteHeader() {
                   {link.label}
                 </Link>
               ))}
+              <a
+                href={LOGIN_LINK.href}
+                className="px-3.5 py-1.5 bg-adaRose hover:bg-rose-700 text-white font-bold text-sm rounded-full transition inline-flex items-center gap-1.5"
+              >
+                <i className="fa-solid fa-user text-xs" />
+                {LOGIN_LINK.label}
+              </a>
             </nav>
 
             <button
@@ -92,6 +101,16 @@ export default function SiteHeader() {
                 {link.label}
               </Link>
             ))}
+            <div className="border-t border-slate-100 pt-3 mt-2">
+              <a
+                href={LOGIN_LINK.href}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 px-3.5 py-2 bg-adaRose hover:bg-rose-700 text-white font-bold text-sm rounded-full transition w-fit"
+              >
+                <i className="fa-solid fa-user text-xs" />
+                {LOGIN_LINK.label}
+              </a>
+            </div>
           </div>
         )}
       </header>
