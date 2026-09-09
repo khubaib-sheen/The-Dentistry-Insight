@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { SECTIONS, getPublishedList } from "@/lib/sections";
+import FeaturedTabs from "@/components/FeaturedTabs";
 
 export const revalidate = 300; // ISR: refresh every 5 minutes
 
@@ -18,9 +19,10 @@ function formatDate(d: string | null) {
 }
 
 export default async function HomePage() {
-  const jobs = await getPublishedList(SECTIONS.jobs, 6);
+  const blogs = await getPublishedList(SECTIONS.blogs, 6);
   const exams = await getPublishedList(SECTIONS.exams, 6);
   const workshop = await getPublishedList(SECTIONS.workshop, 6);
+  const jobs = await getPublishedList(SECTIONS.jobs, 6);
 
   return (
     <>
@@ -57,6 +59,9 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* FEATURED (tabbed) */}
+      <FeaturedTabs blogs={blogs} exams={exams} workshop={workshop} />
 
       {/* JOBS — Server Component, rendered in raw HTML for crawlers.
           This replaces the old client-side fetch-into-empty-div pattern. */}
