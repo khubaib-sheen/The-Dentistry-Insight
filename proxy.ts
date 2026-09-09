@@ -33,7 +33,11 @@ export async function proxy(request: NextRequest) {
   // Gate everything under /admin except the login page itself.
   // (auth.getUser() only runs for /admin — no need to hit Supabase
   // Auth on every public page load.)
-  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+  if (
+    pathname.startsWith("/admin") &&
+    !pathname.startsWith("/admin/login") &&
+    !pathname.endsWith(".html")
+  ) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
