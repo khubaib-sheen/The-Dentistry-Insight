@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verify Code — The Dentistry Insight</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:#f8fafc;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;}
+  .card{width:100%;max-width:400px;background:#fff;border-radius:1rem;box-shadow:0 20px 25px -5px rgba(0,0,0,.08),0 8px 10px -6px rgba(0,0,0,.08);border:1px solid #e2e8f0;padding:2.25rem;}
+  .logo-row{display:flex;flex-direction:column;align-items:center;margin-bottom:1.5rem;}
+  .logo-row img{height:56px;width:auto;object-fit:contain;margin-bottom:.75rem;}
+  h1{font-size:1.125rem;font-weight:900;color:#0f172a;text-align:center;}
+  p.sub{font-size:.75rem;color:#94a3b8;margin-top:.25rem;text-align:center;}
+  p.sub b{color:#0f172a;}
+  label{display:block;font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.375rem;margin-top:1.25rem;}
+  input#otp{width:100%;padding:.8rem 1rem;border:1px solid #e2e8f0;border-radius:.5rem;font-size:1.5rem;letter-spacing:.5rem;text-align:center;font-family:inherit;outline:none;transition:border-color .15s;}
+  input#otp:focus{border-color:#0056b3;}
+  button{width:100%;margin-top:1.5rem;padding:.8rem;background:#0c2340;color:#fff;border:none;border-radius:.5rem;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:.5rem;}
+  button:hover:not(:disabled){background:#1e3a5f;}
+  button:disabled{opacity:.6;cursor:default;}
+  .spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .alert{margin-top:1rem;padding:.65rem .9rem;border-radius:.5rem;font-size:.75rem;font-weight:600;display:none;}
+  .alert.error{background:#fff1f2;color:#e11d48;display:block;}
+  .alert.success{background:#ecfdf5;color:#059669;display:block;}
+  .resend-row{text-align:center;margin-top:1.25rem;font-size:.75rem;color:#94a3b8;}
+  .resend-row button{all:unset;color:#0056b3;font-weight:700;cursor:pointer;font-size:.75rem;}
+  .resend-row button:disabled{color:#cbd5e1;cursor:default;}
+  .back-link{display:block;text-align:center;margin-top:1.25rem;font-size:.75rem;color:#94a3b8;text-decoration:none;}
+  .back-link:hover{color:#0056b3;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-row">
+      <img src="/logo.png" alt="The Dentistry Insight" onerror="this.style.display='none'">
+      <h1>Enter your code</h1>
+      <p class="sub">Sent to <b id="emailDisplay">your email</b></p>
+    </div>
+
+    <form id="verifyForm">
+      <label for="otp">6-digit code</label>
+      <input type="text" id="otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="000000" autocomplete="one-time-code">
+      <button type="submit" id="submitBtn">
+        <span id="btnText">Verify &amp; Login</span>
+      </button>
+      <div id="alertBox" class="alert"></div>
+    </form>
+
+    <div class="resend-row">
+      Didn't get it? <button id="resendBtn" type="button">Resend code</button>
+    </div>
+
+    <a href="/login.html" class="back-link"><i class="fa-solid fa-arrow-left"></i>&nbsp; Use a different email</a>
+  </div>
+
+<script>
+  const SUPABASE_URL = "https://rtzxxeeqfhmmnoubwzvq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_v8RouLqDckbyAXURXFo18w_Q0M3Qx5-";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get('email') || '';
+  document.getElementById('emailDisplay').textContent = email || 'your email';
+
+  if (!email) {
+    window.location.href = '/login.html';
+  }
+
+  const form = document.getElementById('verifyForm');
+  const btn = document.getElementById('submitBtn');
+  const btnText = document.getElementById('btnText');
+  const alertBox = document.getElementById('alertBox');
+  const resendBtn = document.getElementById('resendBtn');
+
+  function showAlert(msg, type) {
+    alertBox.textContent = msg;
+    alertBox.className = 'alert ' + type;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = document.getElementById('otp').value.trim();
+    if (!token) return;
+
+    btn.disabled = true;
+    alertBox.className = 'alert';
+    btnText.innerHTML = '<span class="spinner"></span>';
+
+    const { data, error } = await supabaseClient.auth.verifyOtp({
+      email,
+      token,
+      type: 'email'
+    });
+
+    if (error) {
+      showAlert(error.message, 'error');
+      btn.disabled = false;
+      btnText.textContent = 'Verify & Login';
+      return;
+    }
+
+    // Session is automatically persisted by supabase-js (localStorage) —
+    // no manual storage step needed.
+    showAlert('Verified — welcome back!', 'success');
+    setTimeout(() => {
+      window.location.href = '/dashboard.html';
+    }, 500);
+  });
+
+  let resendCooldown = 0;
+  resendBtn.addEventListener('click', async () => {
+    if (resendCooldown > 0) return;
+    resendBtn.disabled = true;
+    const { error } = await supabaseClient.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+    if (error) {
+      showAlert(error.message, 'error');
+    } else {
+      showAlert('New code sent.', 'success');
+    }
+    resendCooldown = 30;
+    const tick = setInterval(() => {
+      resendCooldown--;
+      resendBtn.textContent = resendCooldown > 0 ? `Resend code (${resendCooldown}s)` : 'Resend code';
+      if (resendCooldown <= 0) {
+        clearInterval(tick);
+        resendBtn.disabled = false;
+      }
+    }, 1000);
+  });
+</script>
+</body>
+</html>

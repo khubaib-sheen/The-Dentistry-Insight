@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Member Login — The Dentistry Insight</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',sans-serif;background:#f8fafc;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;}
+  .card{width:100%;max-width:400px;background:#fff;border-radius:1rem;box-shadow:0 20px 25px -5px rgba(0,0,0,.08),0 8px 10px -6px rgba(0,0,0,.08);border:1px solid #e2e8f0;padding:2.25rem;}
+  .logo-row{display:flex;flex-direction:column;align-items:center;margin-bottom:1.5rem;}
+  .logo-row img{height:56px;width:auto;object-fit:contain;margin-bottom:.75rem;}
+  h1{font-size:1.125rem;font-weight:900;color:#0f172a;text-align:center;}
+  p.sub{font-size:.75rem;color:#94a3b8;margin-top:.25rem;text-align:center;}
+  label{display:block;font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.375rem;margin-top:1.25rem;}
+  input{width:100%;padding:.7rem 1rem;border:1px solid #e2e8f0;border-radius:.5rem;font-size:.875rem;font-family:inherit;outline:none;transition:border-color .15s;}
+  input:focus{border-color:#0056b3;}
+  button{width:100%;margin-top:1.5rem;padding:.8rem;background:#0c2340;color:#fff;border:none;border-radius:.5rem;font-size:.875rem;font-weight:700;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:.5rem;}
+  button:hover:not(:disabled){background:#1e3a5f;}
+  button:disabled{opacity:.6;cursor:default;}
+  .spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .alert{margin-top:1rem;padding:.65rem .9rem;border-radius:.5rem;font-size:.75rem;font-weight:600;display:none;}
+  .alert.error{background:#fff1f2;color:#e11d48;display:block;}
+  .alert.success{background:#ecfdf5;color:#059669;display:block;}
+  .back-link{display:block;text-align:center;margin-top:1.5rem;font-size:.75rem;color:#94a3b8;text-decoration:none;}
+  .back-link:hover{color:#0056b3;}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-row">
+      <img src="/logo.png" alt="The Dentistry Insight" onerror="this.style.display='none'">
+      <h1>Member Login</h1>
+      <p class="sub">No password needed — we'll email you a 6-digit code.</p>
+    </div>
+
+    <form id="loginForm">
+      <label for="email">Email address</label>
+      <input type="email" id="email" required placeholder="you@example.com" autocomplete="email">
+      <button type="submit" id="submitBtn">
+        <span id="btnText">Send 6-digit code</span>
+      </button>
+      <div id="alertBox" class="alert"></div>
+    </form>
+
+    <a href="/" class="back-link"><i class="fa-solid fa-arrow-left"></i>&nbsp; Back to The Dentistry Insight</a>
+  </div>
+
+<script>
+  const SUPABASE_URL = "https://rtzxxeeqfhmmnoubwzvq.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_v8RouLqDckbyAXURXFo18w_Q0M3Qx5-";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const form = document.getElementById('loginForm');
+  const btn = document.getElementById('submitBtn');
+  const btnText = document.getElementById('btnText');
+  const alertBox = document.getElementById('alertBox');
+
+  function showAlert(msg, type) {
+    alertBox.textContent = msg;
+    alertBox.className = 'alert ' + type;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    if (!email) return;
+
+    btn.disabled = true;
+    alertBox.className = 'alert';
+    btnText.innerHTML = '<span class="spinner"></span>';
+
+    const { error } = await supabaseClient.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true }
+    });
+
+    if (error) {
+      showAlert(error.message, 'error');
+      btn.disabled = false;
+      btnText.textContent = 'Send 6-digit code';
+      return;
+    }
+
+    showAlert('Code sent — check your email.', 'success');
+    setTimeout(() => {
+      window.location.href = '/verify.html?email=' + encodeURIComponent(email);
+    }, 700);
+  });
+</script>
+</body>
+</html>
