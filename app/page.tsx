@@ -19,6 +19,8 @@ function formatDate(d: string | null) {
 
 export default async function HomePage() {
   const jobs = await getPublishedList(SECTIONS.jobs, 6);
+  const exams = await getPublishedList(SECTIONS.exams, 6);
+  const workshop = await getPublishedList(SECTIONS.workshop, 6);
 
   return (
     <>
@@ -119,6 +121,152 @@ export default async function HomePage() {
                         >
                           {isWhatsApp && <i className="fa-brands fa-whatsapp" />}
                           {job.ctaLabel}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* EXAMS */}
+      <section id="exams-section" className="py-16 bg-slate-50 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 flex items-end justify-between flex-wrap gap-4">
+            <div>
+              <div className="text-xs font-bold tracking-widest text-adaBlue uppercase mb-2">
+                Exam Resources
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Licensing Exams
+              </h2>
+            </div>
+            <Link
+              href="/exams/"
+              className="text-sm font-bold text-adaBlue hover:underline"
+            >
+              View all exams &rarr;
+            </Link>
+          </div>
+
+          {exams.length === 0 ? (
+            <p className="text-sm text-slate-400">No exams published yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {exams.map((item) => {
+                const isWhatsApp = item.ctaHref?.includes("wa.me");
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white border border-slate-200/80 rounded-xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col"
+                  >
+                    <Link href={`/exams/${item.slug}/`} className="block p-5 pb-3 flex-1">
+                      <span className="px-2.5 py-1 bg-blue-50 text-adaBlue text-[9px] font-extrabold uppercase rounded-full tracking-wider">
+                        Licensing Exam
+                      </span>
+                      <h3 className="text-base font-bold text-slate-900 mt-2">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-semibold mt-1">
+                        {item.subtitle}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-2 line-clamp-3">
+                        {item.summary}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-3">
+                        {formatDate(item.createdAt)}
+                      </p>
+                    </Link>
+                    {item.ctaHref && item.ctaLabel && (
+                      <div className="px-5 pb-5">
+                        <a
+                          href={item.ctaHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold transition ${
+                            isWhatsApp
+                              ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
+                              : "bg-adaBlue/10 hover:bg-adaBlue/20 text-adaBlue"
+                          }`}
+                        >
+                          {isWhatsApp && <i className="fa-brands fa-whatsapp" />}
+                          {item.ctaLabel}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* WORKSHOP */}
+      <section id="workshop-section" className="py-16 bg-slate-50 border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 flex items-end justify-between flex-wrap gap-4">
+            <div>
+              <div className="text-xs font-bold tracking-widest text-adaBlue uppercase mb-2">
+                Workshop
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                Dental Workshop
+              </h2>
+            </div>
+            <Link
+              href="/workshop/"
+              className="text-sm font-bold text-adaBlue hover:underline"
+            >
+              View all &rarr;
+            </Link>
+          </div>
+
+          {workshop.length === 0 ? (
+            <p className="text-sm text-slate-400">No workshop posts yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {workshop.map((item) => {
+                const isWhatsApp = item.ctaHref?.includes("wa.me");
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white border border-slate-200/80 rounded-xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col"
+                  >
+                    <Link href={`/workshop/${item.slug}/`} className="block p-5 pb-3 flex-1">
+                      <span className="px-2.5 py-1 bg-blue-50 text-adaBlue text-[9px] font-extrabold uppercase rounded-full tracking-wider">
+                        Workshop Post
+                      </span>
+                      <h3 className="text-base font-bold text-slate-900 mt-2">
+                        {item.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 font-semibold mt-1">
+                        {item.subtitle}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-2 line-clamp-3">
+                        {item.summary}
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-semibold mt-3">
+                        {formatDate(item.createdAt)}
+                      </p>
+                    </Link>
+                    {item.ctaHref && item.ctaLabel && (
+                      <div className="px-5 pb-5">
+                        <a
+                          href={item.ctaHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold transition ${
+                            isWhatsApp
+                              ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
+                              : "bg-adaBlue/10 hover:bg-adaBlue/20 text-adaBlue"
+                          }`}
+                        >
+                          {isWhatsApp && <i className="fa-brands fa-whatsapp" />}
+                          {item.ctaLabel}
                         </a>
                       </div>
                     )}
