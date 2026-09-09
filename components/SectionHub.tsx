@@ -85,7 +85,6 @@ export default function SectionHub({
                           href={item.ctaHref}
                           target="_blank"
                           rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
                           className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold transition ${
                             isWhatsApp
                               ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
