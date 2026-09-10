@@ -64,6 +64,7 @@ function CountryFilterGrid({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredItems.map((item) => {
             const isWhatsApp = item.ctaHref?.includes("wa.me");
+            const isMailto = item.ctaHref?.startsWith("mailto:");
             return (
               <div
                 key={item.id}
@@ -104,8 +105,10 @@ function CountryFilterGrid({
                   <div className="px-5 pb-5">
                     <a
                       href={item.ctaHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      {...(!isMailto && {
+                        target: "_blank",
+                        rel: "noopener noreferrer",
+                      })}
                       className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold transition ${
                         isWhatsApp
                           ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
