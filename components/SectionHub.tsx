@@ -1,175 +1,201 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useMemo, useState } from "react";
 import type { NormalizedItem } from "@/lib/sections";
 
-// Turns bare "https://..." plain text inside saved post content into real,
-// clickable <a> tags. Needed because pasting a raw URL into the editor
-// (without using "Insert Link") saves it as plain text, which then renders
-// as inert text instead of a working link. Leaves existing real <a> tags,
-// images, and all other markup completely untouched.
-function linkifyContent(html: string): string {
-  if (!html) return html;
-  const urlRegex = /(https?:\/\/[^\s<]+)/g;
-  const parts = html.split(/(<[^>]+>)/g);
-  let insideAnchor = false;
-
-  return parts
-    .map((part) => {
-      if (part.startsWith("<")) {
-        if (/^<a\b/i.test(part)) insideAnchor = true;
-        if (/^<\/a>/i.test(part)) insideAnchor = false;
-        return part;
-      }
-      if (insideAnchor) return part;
-      return part.replace(
-        urlRegex,
-        (url) =>
-          `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-adaBlue underline font-semibold break-all">${url}</a>`
-      );
-    })
-    .join("");
+// subtitle is built as "{company/type} · {location}" — split on " · " first
+// to isolate the location part, THEN take the last comma-separated segment
+// as the country. This avoids company names / categories leaking into the
+// country dropdown.
+function extractCountry(subtitle: string | null): string | null {
+  if (!subtitle) return null;
+  const dotParts = subtitle.split("·");
+  const locationPart = dotParts[dotParts.length - 1].trim();
+  if (!locationPart) return null;
+  const commaParts = locationPart.split(",");
+  const country = commaParts[commaParts.length - 1].trim();
+  return country || null;
 }
 
-export default function SectionDetail({
-  item,
+function PlainGrid({
+  items,
   folder,
-  label,
   badge,
-  related = [],
 }: {
-  item: NormalizedItem;
+  items: NormalizedItem[];
   folder: string;
-  label: string;
   badge: string;
-  related?: NormalizedItem[];
 }) {
   return (
-    <article className="bg-white">
-      {/* Breadcrumbs — mirrors the BreadcrumbList JSON-LD emitted in generateMetadata */}
-      <nav
-        aria-label="Breadcrumb"
-        className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 text-xs text-slate-400"
-      >
-        <ol className="flex flex-wrap items-center gap-1.5">
-          <li>
-            <Link href="/" className="hover:text-adaBlue">
-              Home
-            </Link>
-          </li>
-          <li aria-hidden>/</li>
-          <li>
-            <Link href={`/${folder}/`} className="hover:text-adaBlue">
-              {label}
-            </Link>
-          </li>
-          <li aria-hidden>/</li>
-          <li className="text-slate-600 font-semibold truncate max-w-[240px]">
-            {item.title}
-          </li>
-        </ol>
-      </nav>
-
-      <header className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-8 border-b border-slate-100">
-        <span className="px-2.5 py-1 bg-blue-50 text-adaBlue text-[10px] font-extrabold uppercase rounded-full tracking-wider">
-          {badge}
-        </span>
-        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-3">
-          {item.title}
-        </h1>
-        {item.subtitle && (
-          <p className="text-sm text-slate-500 font-semibold mt-2">
-            {item.subtitle}
-          </p>
-        )}
-        {item.createdAt && (
-          <p className="text-[11px] text-slate-400 font-semibold mt-2">
-            Posted{" "}
-            {new Date(item.createdAt).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            })}
-          </p>
-        )}
-      </header>
-
-      {item.image && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          <div className="relative w-full h-64 sm:h-80 rounded-xl overflow-hidden bg-slate-100">
-            <Image
-              src={item.image}
-              alt={item.imageAlt || item.title}
-              fill
-              sizes="(max-width: 768px) 100vw, 768px"
-              className="object-cover"
-              priority
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Renders as HTML: new content is authored via the Tiptap editor
-            (Phase 4); legacy plain-text rows render fine too since they
-            contain no markup. linkifyContent() turns any bare pasted URL
-            into a real clickable link before rendering. */}
-        <div
-          className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-700"
-          dangerouslySetInnerHTML={{ __html: linkifyContent(item.content) }}
-        />
-
-        {item.ctaLabel && item.ctaHref && (
-          <a
-            href={item.ctaHref}
-            target="_blank"
-            rel="noopener"
-            className="inline-block mt-8 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg transition shadow-lg shadow-rose-900/20 text-sm"
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {items.map((item) => {
+        const isWhatsApp = item.ctaHref?.includes("wa.me");
+        const isMailto = item.ctaHref?.startsWith("mailto:");
+        return (
+          <div
+            key={item.id}
+            className="bg-white border border-slate-200/80 rounded-xl overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col"
           >
-            {item.ctaLabel}
-          </a>
-        )}
-      </div>
-
-      {/* Internal linking: 2-4 related posts within the same section,
-          plus a link to Jobs — the site's primary conversion page. */}
-      {related.length > 0 && (
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
-          <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide mb-4">
-            Related {label}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {related.map((r) => (
-              <Link
-                key={r.id}
-                href={`/${folder}/${r.slug}/`}
-                className="block bg-slate-50 border border-slate-200/80 rounded-lg p-4 hover:shadow-md transition"
-              >
-                <h3 className="text-sm font-bold text-slate-800">{r.title}</h3>
-                {r.subtitle && (
-                  <p className="text-xs text-slate-500 mt-1">{r.subtitle}</p>
+            <Link href={`/${folder}/${item.slug}/`} className="block flex-1">
+              {item.image && (
+                <div className="relative w-full h-36 bg-slate-100">
+                  <Image
+                    src={item.image}
+                    alt={item.imageAlt || item.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="p-5 pb-3">
+                <span className="px-2.5 py-1 bg-blue-50 text-adaBlue text-[9px] font-extrabold uppercase rounded-full tracking-wider">
+                  {badge}
+                </span>
+                <h2 className="text-base font-bold text-slate-900 mt-2">
+                  {item.title}
+                </h2>
+                {item.subtitle && (
+                  <p className="text-xs text-slate-500 font-semibold mt-1">
+                    {item.subtitle}
+                  </p>
                 )}
-              </Link>
-            ))}
+                {item.summary && (
+                  <p className="text-xs text-slate-400 mt-2 line-clamp-3">
+                    {item.summary}
+                  </p>
+                )}
+              </div>
+            </Link>
+            {item.ctaHref && item.ctaLabel && (
+              <div className="px-5 pb-5">
+                <a
+                  href={item.ctaHref}
+                  {...(!isMailto && {
+                    target: "_blank",
+                    rel: "noopener noreferrer",
+                  })}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold transition ${
+                    isWhatsApp
+                      ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-600"
+                      : "bg-adaBlue/10 hover:bg-adaBlue/20 text-adaBlue"
+                  }`}
+                >
+                  {isWhatsApp && <i className="fa-brands fa-whatsapp" />}
+                  {item.ctaLabel}
+                </a>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })}
+    </div>
+  );
+}
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 flex flex-wrap items-center gap-4">
-        <Link
-          href={`/${folder}/`}
-          className="text-sm font-bold text-adaBlue hover:underline"
+function CountryFilterGrid({
+  items,
+  folder,
+  badge,
+}: {
+  items: NormalizedItem[];
+  folder: string;
+  badge: string;
+}) {
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+
+  const countries = useMemo(() => {
+    const countrySet = new Set<string>();
+    items.forEach((item) => {
+      const c = extractCountry(item.subtitle);
+      if (c) countrySet.add(c);
+    });
+    return Array.from(countrySet).sort();
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    if (!selectedCountry) return items;
+    return items.filter(
+      (item) => extractCountry(item.subtitle) === selectedCountry
+    );
+  }, [items, selectedCountry]);
+
+  return (
+    <>
+      <div className="mb-6">
+        <select
+          value={selectedCountry || ""}
+          onChange={(e) => setSelectedCountry(e.target.value || null)}
+          className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:border-adaBlue transition focus:outline-none focus:ring-2 focus:ring-adaBlue/30"
         >
-          &larr; Back to {label}
-        </Link>
-        {folder !== "jobs" && (
-          <Link
-            href="/jobs/"
-            className="text-sm font-bold text-rose-600 hover:underline"
-          >
-            Browse Dental Jobs &rarr;
-          </Link>
-        )}
+          <option value="">All Countries</option>
+          {countries.map((country) => (
+            <option key={country} value={country}>
+              {country}
+            </option>
+          ))}
+        </select>
       </div>
-    </article>
+
+      {filteredItems.length === 0 ? (
+        <p className="text-sm text-slate-400">
+          No listings found for the selected country.
+        </p>
+      ) : (
+        <PlainGrid items={filteredItems} folder={folder} badge={badge} />
+      )}
+    </>
+  );
+}
+
+export default function SectionHub({
+  title,
+  intro,
+  badge,
+  folder,
+  items,
+  enableCountryFilter = false,
+}: {
+  title: string;
+  intro: string;
+  badge: string;
+  folder: string;
+  items: NormalizedItem[];
+  enableCountryFilter?: boolean;
+}) {
+  return (
+    <>
+      <section className="bg-adaNavy text-white py-14">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <span className="text-xs uppercase tracking-widest font-black text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-full inline-block mb-4">
+            {badge}
+          </span>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
+            {title}
+          </h1>
+          <p className="text-slate-300 max-w-2xl">{intro}</p>
+        </div>
+      </section>
+
+      <section className="py-12 bg-slate-50 min-h-[40vh]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-xs text-slate-500 font-semibold mb-6">
+            {items.length} {items.length === 1 ? "listing" : "listings"}
+          </p>
+
+          {items.length === 0 ? (
+            <p className="text-sm text-slate-400">
+              Nothing published here yet — check back soon.
+            </p>
+          ) : enableCountryFilter ? (
+            <CountryFilterGrid items={items} folder={folder} badge={badge} />
+          ) : (
+            <PlainGrid items={items} folder={folder} badge={badge} />
+          )}
+        </div>
+      </section>
+    </>
   );
 }
