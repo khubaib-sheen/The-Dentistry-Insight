@@ -8,7 +8,7 @@ const section = SECTIONS.jobs;
 
 export const metadata = buildHubMetadata(
   section,
-  "Verified dental job openings from clinics and hospitals across Pakistan and beyond."
+  "Verified dental job openings from clinics and hospitals worldwide."
 );
 
 export default async function Page() {
@@ -16,10 +16,11 @@ export default async function Page() {
   return (
     <SectionHub
       title={section.label}
-      intro="Verified dental job openings from clinics and hospitals across Pakistan and beyond."
+      intro="Verified dental job openings from clinics and hospitals worldwide."
       badge={section.badge}
       folder={section.folder}
       items={items}
+      enableCountryFilter
     />
   );
 }
