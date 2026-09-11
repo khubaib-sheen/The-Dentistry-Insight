@@ -291,6 +291,31 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ABOUT THE FOUNDER — restored from the original index.html */}
+      <section id="founder-section" className="py-16 bg-white border-b border-slate-200">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <img
+            src="/founder.jpg"
+            alt="Dr. Hussain Ahmad"
+            className="w-24 h-24 rounded-full object-cover mx-auto mb-5 border-4 border-slate-100 shadow-sm"
+          />
+          <h2 className="text-lg font-black text-slate-900 mb-1">
+            Dr. Hussain Ahmad
+          </h2>
+          <p className="text-xs font-bold text-adaBlue uppercase tracking-wider mb-6">
+            Founder, The Dentistry Insight
+          </p>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            I am Dr. Hussain Ahmad, a licensed dentist in Pakistan. Over the
+            years, I attended countless dental workshops, paid for CPD
+            webinars, and applied to dental jobs myself — only to find
+            responses came late, contact details were often missing, and
+            many listings weren&apos;t even dentistry-related. So I built a
+            verified platform solely for dental jobs.
+          </p>
+        </div>
+      </section>
+
       {/* CONTACT */}
       <section id="contact-section" className="py-16 bg-slate-50 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

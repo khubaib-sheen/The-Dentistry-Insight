@@ -2,21 +2,85 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { NormalizedItem } from "@/lib/sections";
 
-// subtitle is built as "{company/type} · {location}" — split on " · " first
-// to isolate the location part, THEN take the last comma-separated segment
-// as the country. This avoids company names / categories leaking into the
-// country dropdown.
-function extractCountry(subtitle: string | null): string | null {
-  if (!subtitle) return null;
-  const dotParts = subtitle.split("·");
-  const locationPart = dotParts[dotParts.length - 1].trim();
-  if (!locationPart) return null;
-  const commaParts = locationPart.split(",");
-  const country = commaParts[commaParts.length - 1].trim();
-  return country || null;
+// Same curated keyword groups as the original static site, so "Karachi,
+// Pakistan" or "Al Sharjah, UAE" match the right dropdown option even when
+// admins don't type the country name consistently.
+const COUNTRY_KEYWORDS: Record<string, string[]> = {
+  pakistan: [
+    "pakistan", "karachi", "lahore", "islamabad", "rawalpindi", "faisalabad", "multan", "peshawar",
+    "quetta", "sialkot", "gujranwala", "sargodha", "rawat", "sadiqabad", "bahawalpur", "sukkur",
+    "larkana", "sheikhupura", "jhang", "rahim yar khan", "gujrat", "kasur", "mardan", "mingora",
+    "nawabshah", "sahiwal", "okara", "wah cantonment", "wah cantt", "dera ghazi khan", "dg khan",
+    "mirpur khas", "kohat", "hyderabad", "abbottabad", "muzaffarabad", "gilgit", "skardu",
+    "chiniot", "kamoke", "hafizabad", "burewala", "jacobabad", "attock", "vehari", "chakwal",
+    "mandi bahauddin", "jhelum", "toba tek singh", "layyah", "muzaffargarh", "khanewal", "kot addu",
+    "nowshera", "charsadda", "swat", "bannu", "dera ismail khan", "bahawalnagar", "daska", "gojra",
+    "pattoki", "shikarpur", "khairpur", "dadu", "sanghar", "badin", "tando adam", "mirpur azad kashmir",
+    "kotli", "chishtian", "ghotki",
+  ],
+  usa: [
+    "usa", "u.s.a", "united states", "america", "u.s.", "new york", "los angeles", "chicago",
+    "houston", "phoenix", "philadelphia", "san antonio", "san diego", "dallas", "san jose",
+    "austin", "jacksonville", "fort worth", "columbus", "charlotte", "san francisco", "indianapolis",
+    "seattle", "denver", "washington", "boston", "nashville", "detroit", "portland", "memphis",
+    "las vegas", "louisville", "baltimore", "milwaukee", "albuquerque", "tucson", "fresno",
+    "sacramento", "atlanta", "miami", "oakland", "minneapolis", "tulsa", "cleveland", "wichita",
+    "arlington", "california", "texas", "florida", "ohio", "georgia", "michigan", "virginia",
+    "new jersey", "north carolina",
+  ],
+  indonesia: [
+    "indonesia", "jakarta", "surabaya", "bandung", "medan", "semarang", "makassar", "palembang",
+    "depok", "tangerang", "bekasi", "bali", "denpasar", "yogyakarta", "malang", "bogor",
+  ],
+  uae: [
+    "uae", "u.a.e", "united arab emirates", "dubai", "sharjah", "abu dhabi", "ajman",
+    "ras al khaimah", "fujairah", "umm al quwain", "al ain",
+  ],
+  "saudi arabia": [
+    "saudi", "ksa", "riyadh", "jeddah", "mecca", "makkah", "medina", "madinah", "dammam",
+    "khobar", "al khobar", "taif", "tabuk", "abha", "jubail", "yanbu", "najran", "hail", "buraidah",
+  ],
+  australia: [
+    "australia", "sydney", "melbourne", "brisbane", "perth", "adelaide", "gold coast",
+    "canberra", "newcastle nsw", "hobart", "darwin",
+  ],
+  qatar: ["qatar", "doha", "al rayyan", "al wakrah", "umm salal"],
+  uk: [
+    "uk", "u.k", "united kingdom", "england", "london", "scotland", "wales", "britain",
+    "great britain", "manchester", "birmingham", "liverpool", "leeds", "glasgow", "edinburgh",
+    "bristol", "sheffield", "cardiff", "belfast", "newcastle upon tyne", "nottingham", "leicester",
+  ],
+};
+
+const COUNTRY_LABELS: Record<string, string> = {
+  pakistan: "Pakistan",
+  usa: "USA",
+  indonesia: "Indonesia",
+  uae: "UAE",
+  "saudi arabia": "Saudi Arabia",
+  australia: "Australia",
+  qatar: "Qatar",
+  uk: "UK",
+  other: "Other",
+};
+
+const COUNTRY_CODE_MAP: Record<string, string> = {
+  PK: "pakistan", US: "usa", ID: "indonesia", AE: "uae",
+  SA: "saudi arabia", AU: "australia", QA: "qatar", GB: "uk",
+};
+
+function itemMatchesCountry(item: NormalizedItem, countryKey: string): boolean {
+  const text = `${item.subtitle || ""} ${item.title || ""}`.toLowerCase();
+  if (countryKey === "other") {
+    return !Object.values(COUNTRY_KEYWORDS).some((words) =>
+      words.some((w) => text.includes(w))
+    );
+  }
+  const words = COUNTRY_KEYWORDS[countryKey] || [countryKey];
+  return words.some((w) => text.includes(w));
 }
 
 function PlainGrid({
@@ -104,36 +168,47 @@ function CountryFilterGrid({
   folder: string;
   badge: string;
 }) {
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  // Defaults to Pakistan, same as the original site, until geo-IP resolves.
+  const [selectedCountry, setSelectedCountry] = useState<string>("pakistan");
 
-  const countries = useMemo(() => {
-    const countrySet = new Set<string>();
-    items.forEach((item) => {
-      const c = extractCountry(item.subtitle);
-      if (c) countrySet.add(c);
-    });
-    return Array.from(countrySet).sort();
-  }, [items]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("https://ipapi.co/json/")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.country_code) return;
+        const key = COUNTRY_CODE_MAP[data.country_code] || "other";
+        setSelectedCountry(key);
+      })
+      .catch(() => {
+        // Geo-detection unavailable (blocked/offline) — stays on Pakistan default.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const filteredItems = useMemo(() => {
-    if (!selectedCountry) return items;
-    return items.filter(
-      (item) => extractCountry(item.subtitle) === selectedCountry
-    );
-  }, [items, selectedCountry]);
+  const countryOptions = useMemo(
+    () => [...Object.keys(COUNTRY_KEYWORDS), "other"],
+    []
+  );
+
+  const filteredItems = useMemo(
+    () => items.filter((item) => itemMatchesCountry(item, selectedCountry)),
+    [items, selectedCountry]
+  );
 
   return (
     <>
       <div className="mb-6">
         <select
-          value={selectedCountry || ""}
-          onChange={(e) => setSelectedCountry(e.target.value || null)}
+          value={selectedCountry}
+          onChange={(e) => setSelectedCountry(e.target.value)}
           className="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:border-adaBlue transition focus:outline-none focus:ring-2 focus:ring-adaBlue/30"
         >
-          <option value="">All Countries</option>
-          {countries.map((country) => (
-            <option key={country} value={country}>
-              {country}
+          {countryOptions.map((key) => (
+            <option key={key} value={key}>
+              {COUNTRY_LABELS[key] || key}
             </option>
           ))}
         </select>
@@ -141,7 +216,7 @@ function CountryFilterGrid({
 
       {filteredItems.length === 0 ? (
         <p className="text-sm text-slate-400">
-          No listings found for the selected country.
+          No listings found for {COUNTRY_LABELS[selectedCountry]}.
         </p>
       ) : (
         <PlainGrid items={filteredItems} folder={folder} badge={badge} />
