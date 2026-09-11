@@ -2,6 +2,29 @@ import Link from "next/link";
 import Image from "next/image";
 import type { NormalizedItem } from "@/lib/sections";
 
+function linkifyContent(html: string): string {
+  if (!html) return html;
+  const urlRegex = /(https?:\/\/[^\s<]+)/g;
+  const parts = html.split(/(<[^>]+>)/g);
+  let insideAnchor = false;
+
+  return parts
+    .map((part) => {
+      if (part.startsWith("<")) {
+        if (/^<a\b/i.test(part)) insideAnchor = true;
+        if (/^<\/a>/i.test(part)) insideAnchor = false;
+        return part;
+      }
+      if (insideAnchor) return part;
+      return part.replace(
+        urlRegex,
+        (url) =>
+          `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-adaBlue underline font-semibold break-all">${url}</a>`
+      );
+    })
+    .join("");
+}
+
 export default function SectionDetail({
   item,
   folder,
@@ -86,7 +109,7 @@ export default function SectionDetail({
             contain no markup. */}
         <div
           className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-700"
-          dangerouslySetInnerHTML={{ __html: item.content }}
+          dangerouslySetInnerHTML={{ __html: linkifyContent(item.content) }}
         />
 
         {item.ctaLabel && item.ctaHref && (
