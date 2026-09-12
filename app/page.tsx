@@ -300,18 +300,22 @@ export default async function HomePage() {
             className="w-24 h-24 rounded-full object-cover mx-auto mb-5 border-4 border-slate-100 shadow-sm"
           />
           <h2 className="text-lg font-black text-slate-900 mb-1">
-            Dr. Hussain Ahmad
+            Hussain Ahmad
           </h2>
           <p className="text-xs font-bold text-adaBlue uppercase tracking-wider mb-6">
-            Founder, The Dentistry Insight
+            Founder, The Dentistry Insight | Dentist | PIMA Member | Al-Khidmat Foundation Medical Volunteer
           </p>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            I am Dr. Hussain Ahmad, a licensed dentist in Pakistan. Over the
-            years, I attended countless dental workshops, paid for CPD
-            webinars, and applied to dental jobs myself — only to find
-            responses came late, contact details were often missing, and
-            many listings weren&apos;t even dentistry-related. So I built a
-            verified platform solely for dental jobs.
+          <p className="text-sm text-slate-600 leading-relaxed mb-4">
+            Dr. Hussain Ahmad is a dentist, professional dental blog writer, and founder of The Dentistry Insight — an independent and trusted dental educational and professional resource platform with a community of 10,000+ dentists and dental professionals.
+          </p>
+          <p className="text-sm text-slate-600 leading-relaxed mb-4">
+            The platform aims to make dental jobs, webinars, licensing-exam materials, educational resources, and career opportunities more accessible to dentists, dental hygienists, dental technicians, dental nurses, dental assistants, and dentistry students.
+          </p>
+          <p className="text-sm text-slate-600 leading-relaxed mb-4">
+            His vision is to make useful dental knowledge and opportunities accessible to the dental community in every corner of the world.
+          </p>
+          <p className="text-sm font-semibold text-adaBlue">
+            ❤️ Learn. Connect. Grow.
           </p>
         </div>
       </section>
