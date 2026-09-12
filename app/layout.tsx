@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -17,6 +18,7 @@ const DEFAULT_TITLE =
   "The Dentistry Insight — Verified Dental Jobs, Blogs & Exam Resources";
 const DEFAULT_DESCRIPTION =
   "Verified career portal for dentists — jobs, blogs, workshops, market updates, and exam resources.";
+const GA_MEASUREMENT_ID = "G-J1WXP5FJCC";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -98,6 +100,21 @@ export default function RootLayout({
         />
       </head>
       <body className="font-sans antialiased flex flex-col min-h-screen">
+        {/* Google Analytics — restored (was present in the original static
+            site's <head> but never carried over during the Next.js migration) */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
+
         <SiteHeader />
         <main className="flex-1">{children}</main>
         <SiteFooter />
