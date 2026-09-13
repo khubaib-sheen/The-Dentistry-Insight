@@ -58,6 +58,71 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* QUICK CATEGORY BOXES — one-click entry into each section */}
+      <section className="py-12 bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <Link
+              href="/jobs/"
+              className="group bg-adaNavy text-white rounded-xl p-6 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-xl transition-all"
+            >
+              <div className="w-14 h-14 rounded-full bg-rose-500/15 flex items-center justify-center text-rose-400 text-2xl mb-4 group-hover:bg-rose-500/25 transition">
+                <i className="fa-solid fa-briefcase" />
+              </div>
+              <h3 className="text-sm font-black">Dental Jobs</h3>
+              <p className="text-[11px] text-slate-300 mt-1">
+                Verified openings worldwide
+              </p>
+            </Link>
+
+            <Link
+              href="/workshop/"
+              className="group bg-white border border-slate-200/80 rounded-xl p-6 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-xl transition-all"
+            >
+              <div className="w-14 h-14 rounded-full bg-adaSoftBlue flex items-center justify-center text-adaBlue text-2xl mb-4 group-hover:bg-blue-100 transition">
+                <i className="fa-solid fa-chalkboard-user" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900">
+                Dental Webinar
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Free CPD workshops &amp; resources
+              </p>
+            </Link>
+
+            <Link
+              href="/exams/"
+              className="group bg-white border border-slate-200/80 rounded-xl p-6 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-xl transition-all"
+            >
+              <div className="w-14 h-14 rounded-full bg-adaSoftBlue flex items-center justify-center text-adaBlue text-2xl mb-4 group-hover:bg-blue-100 transition">
+                <i className="fa-solid fa-graduation-cap" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900">
+                Licensing Exams
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Guides, MCQs &amp; one-liners
+              </p>
+            </Link>
+
+            <Link
+              href="/market/"
+              className="group bg-white border border-slate-200/80 rounded-xl p-6 flex flex-col items-center text-center hover:-translate-y-1 hover:shadow-xl transition-all"
+            >
+              <div className="w-14 h-14 rounded-full bg-adaSoftBlue flex items-center justify-center text-adaBlue text-2xl mb-4 group-hover:bg-blue-100 transition">
+                <i className="fa-solid fa-kit-medical" />
+              </div>
+              <h3 className="text-sm font-black text-slate-900">
+                Dental Material
+              </h3>
+              <p className="text-[11px] text-slate-500 mt-1">
+                Buy, sell &amp; trade equipment
+              </p>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* JOBS — Server Component, rendered in raw HTML for crawlers.
           This replaces the old client-side fetch-into-empty-div pattern. */}
       <section id="jobs-section" className="py-16 bg-slate-50 border-b border-slate-200">
@@ -288,35 +353,6 @@ export default async function HomePage() {
               })}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* ABOUT THE FOUNDER — restored from the original index.html */}
-      <section id="founder-section" className="py-16 bg-white border-b border-slate-200">
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <img
-            src="/founder.jpg"
-            alt="Dr. Hussain Ahmad"
-            className="w-24 h-24 rounded-full object-cover mx-auto mb-5 border-4 border-slate-100 shadow-sm"
-          />
-          <h2 className="text-lg font-black text-slate-900 mb-1">
-            Hussain Ahmad
-          </h2>
-          <p className="text-xs font-bold text-adaBlue uppercase tracking-wider mb-6">
-            Founder, The Dentistry Insight | Dentist | PIMA Member | Al-Khidmat Foundation Medical Volunteer
-          </p>
-          <p className="text-sm text-slate-600 leading-relaxed mb-4">
-            Dr. Hussain Ahmad is a dentist, professional dental blog writer, and founder of The Dentistry Insight — an independent and trusted dental educational and professional resource platform with a community of 10,000+ dentists and dental professionals.
-          </p>
-          <p className="text-sm text-slate-600 leading-relaxed mb-4">
-            The platform aims to make dental jobs, webinars, licensing-exam materials, educational resources, and career opportunities more accessible to dentists, dental hygienists, dental technicians, dental nurses, dental assistants, and dentistry students.
-          </p>
-          <p className="text-sm text-slate-600 leading-relaxed mb-4">
-            His vision is to make useful dental knowledge and opportunities accessible to the dental community in every corner of the world.
-          </p>
-          <p className="text-sm font-semibold text-adaBlue">
-            ❤️ Learn. Connect. Grow.
-          </p>
         </div>
       </section>
 

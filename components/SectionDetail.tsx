@@ -2,6 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import type { NormalizedItem } from "@/lib/sections";
 
+// Turns bare "https://..." plain text inside saved post content into real,
+// clickable <a> tags. Needed because pasting a raw URL into the editor
+// (without using "Insert Link") saves it as plain text, which then renders
+// as inert text instead of a working link. Leaves existing real <a> tags,
+// images, and all other markup completely untouched.
 function linkifyContent(html: string): string {
   if (!html) return html;
   const urlRegex = /(https?:\/\/[^\s<]+)/g;
@@ -106,9 +111,10 @@ export default function SectionDetail({
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Renders as HTML: new content is authored via the Tiptap editor
             (Phase 4); legacy plain-text rows render fine too since they
-            contain no markup. */}
+            contain no markup. linkifyContent() turns any bare pasted URL
+            into a real clickable link before rendering. */}
         <div
-          className="prose prose-slate max-w-none text-sm leading-relaxed text-slate-700"
+          className="prose prose-slate max-w-none whitespace-pre-line text-sm leading-relaxed text-slate-700"
           dangerouslySetInnerHTML={{ __html: linkifyContent(item.content) }}
         />
 
